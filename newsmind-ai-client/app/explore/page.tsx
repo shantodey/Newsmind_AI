@@ -1,0 +1,446 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import Image from "next/image";
+import {
+  FaMagnifyingGlass,
+  FaSliders,
+  FaChevronLeft,
+  FaChevronRight,
+  FaXmark,
+  FaArrowUpWideShort,
+  FaRegClock,
+} from "react-icons/fa6";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Navbar } from "@/components/shared/Navbar";
+import { Footer } from "@/components/shared/Footer";
+import { ArticleCard, type Article } from "@/components/shared/ArticleCard";
+import { getArticles } from "@/app/actions";
+
+// ─── Mock Data ───────────────────────────────────────────────────────────────
+
+const CATEGORIES = [
+  "All", "Technology", "Sport", "Politics", "Business", "Science",
+  "Health", "Entertainment", "World", "Climate", "AI",
+];
+
+const SORT_OPTIONS = [
+  { label: "Newest", value: "newest" },
+  { label: "Most Viewed", value: "views" },
+  { label: "Trending", value: "trending" },
+  { label: "Top Rated", value: "rated" },
+];
+
+const ALL_ARTICLES: Article[] = [
+  {
+    id: "e1", title: "The Quantum Leap: How Quantum Computing Will Break Modern Encryption",
+    excerpt: "Researchers warn that quantum supremacy could make current encryption obsolete within a decade.",
+    category: "Technology", imageUrl: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&h=400&fit=crop",
+    author: { name: "Dr. Priya Kapoor", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&h=60&fit=crop" },
+    publishedAt: "Jul 18, 2026", readTime: "7 min", sentiment: "neutral", sentimentScore: 0.68,
+    tags: ["Quantum", "Cryptography", "Security"],
+  },
+  {
+    id: "e2", title: "Champions League Final: Real Madrid's Historic Comeback",
+    excerpt: "In a stunning reversal, Real Madrid overcame a three-goal deficit to lift the trophy in Milan.",
+    category: "Sport", imageUrl: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=600&h=400&fit=crop",
+    author: { name: "Carlos Romero", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop" },
+    publishedAt: "Jul 17, 2026", readTime: "5 min", sentiment: "positive", sentimentScore: 0.94,
+    tags: ["Football", "UCL", "RealMadrid"],
+  },
+  {
+    id: "e3", title: "Global Climate Summit Ends in Landmark Carbon Zero Accord",
+    excerpt: "195 nations signed the Geneva Accord pledging net-zero emissions by 2045 — the most ambitious climate deal in history.",
+    category: "Climate", imageUrl: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&h=400&fit=crop",
+    author: { name: "Amara Nwosu", avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=60&h=60&fit=crop" },
+    publishedAt: "Jul 17, 2026", readTime: "6 min", sentiment: "positive", sentimentScore: 0.82,
+    tags: ["Climate", "COP", "GreenEnergy"],
+  },
+  {
+    id: "e4", title: "AI Chip Wars: NVIDIA vs. AMD vs. Intel's New Neural Architecture",
+    excerpt: "The battle for AI silicon dominance is reshaping the global semiconductor landscape.",
+    category: "Technology", imageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&h=400&fit=crop",
+    author: { name: "Marcus Elliot", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop" },
+    publishedAt: "Jul 16, 2026", readTime: "8 min", sentiment: "neutral", sentimentScore: 0.71,
+    tags: ["AI", "Semiconductors", "NVIDIA"],
+  },
+  {
+    id: "e5", title: "Biotech Breakthrough: mRNA Cancer Vaccine Enters Phase III Trials",
+    excerpt: "Building on COVID-era technology, a personalized cancer vaccine shows 87% efficacy in early data.",
+    category: "Health", imageUrl: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=600&h=400&fit=crop",
+    author: { name: "Dr. Yuki Tanaka", avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=60&h=60&fit=crop" },
+    publishedAt: "Jul 15, 2026", readTime: "9 min", sentiment: "positive", sentimentScore: 0.91,
+    tags: ["mRNA", "Cancer", "Biotech"],
+  },
+  {
+    id: "e6", title: "Federal Reserve Signals Three Rate Cuts in 2027 as Inflation Cools",
+    excerpt: "Markets surged following the Fed's dovish pivot, with the S&P 500 hitting a new all-time high.",
+    category: "Business", imageUrl: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&h=400&fit=crop",
+    author: { name: "Sarah Mitchell", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=60&h=60&fit=crop" },
+    publishedAt: "Jul 15, 2026", readTime: "5 min", sentiment: "positive", sentimentScore: 0.85,
+    tags: ["FederalReserve", "Economy", "Markets"],
+  },
+  {
+    id: "e7", title: "Mars Mission Update: Artemis VI Crew Begins 18-Month Training",
+    excerpt: "NASA and SpaceX confirm the joint Mars crew selection — the first humans destined for the red planet.",
+    category: "Science", imageUrl: "https://images.unsplash.com/photo-1446776877081-d282a0f896e2?w=600&h=400&fit=crop",
+    author: { name: "James Okafor", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop" },
+    publishedAt: "Jul 14, 2026", readTime: "7 min", sentiment: "positive", sentimentScore: 0.89,
+    tags: ["NASA", "SpaceX", "Mars"],
+  },
+  {
+    id: "e8", title: "UN Emergency Session on AI Governance: What the Draft Treaty Contains",
+    excerpt: "The proposed treaty would require all frontier AI systems to register with a new international body.",
+    category: "AI", imageUrl: "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=600&h=400&fit=crop",
+    author: { name: "Priya Kapoor", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&h=60&fit=crop" },
+    publishedAt: "Jul 14, 2026", readTime: "6 min", sentiment: "neutral", sentimentScore: 0.60,
+    tags: ["AI", "Governance", "UN"],
+  },
+  {
+    id: "e9", title: "Olympics 2028: Los Angeles Completes $4.2B Infrastructure Overhaul",
+    excerpt: "New transit lines, athlete villages, and smart city sensors are ready — two years ahead of schedule.",
+    category: "Sport", imageUrl: "https://images.unsplash.com/photo-1567519836512-1ab09a09c86a?w=600&h=400&fit=crop",
+    author: { name: "Carlos Romero", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=60&h=60&fit=crop" },
+    publishedAt: "Jul 13, 2026", readTime: "4 min", sentiment: "positive", sentimentScore: 0.87,
+    tags: ["Olympics", "LosAngeles", "Infrastructure"],
+  },
+  {
+    id: "e10", title: "Streaming Wars Reach a Truce: Netflix and Disney+ Announce Joint Tier",
+    excerpt: "The two giants' shared bundle is expected to reach 300 million subscribers within a year.",
+    category: "Entertainment", imageUrl: "https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=600&h=400&fit=crop",
+    author: { name: "Amara Nwosu", avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=60&h=60&fit=crop" },
+    publishedAt: "Jul 13, 2026", readTime: "5 min", sentiment: "positive", sentimentScore: 0.78,
+    tags: ["Netflix", "Disney", "Streaming"],
+  },
+  {
+    id: "e11", title: "North Korea Missile Tests Escalate Tensions in Pacific Amid Summit Collapse",
+    excerpt: "Diplomatic back-channels are reportedly frozen after Pyongyang's latest ballistic missile launch series.",
+    category: "World", imageUrl: "https://images.unsplash.com/photo-1604937455095-ef2fe3d46fcd?w=600&h=400&fit=crop",
+    author: { name: "Sarah Mitchell", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=60&h=60&fit=crop" },
+    publishedAt: "Jul 12, 2026", readTime: "6 min", sentiment: "negative", sentimentScore: 0.25,
+    tags: ["NorthKorea", "GeoPolitics", "Pacific"],
+  },
+  {
+    id: "e12", title: "Tech Layoffs: Google Cuts 12,000 Jobs as AI Automates Mid-Tier Roles",
+    excerpt: "The Silicon Valley giant cites AI efficiency gains as the primary driver behind the reduction in force.",
+    category: "Business", imageUrl: "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=600&h=400&fit=crop",
+    author: { name: "Marcus Elliot", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop" },
+    publishedAt: "Jul 12, 2026", readTime: "5 min", sentiment: "negative", sentimentScore: 0.32,
+    tags: ["Google", "Layoffs", "AI"],
+  },
+];
+
+const PAGE_SIZE = 6;
+
+// ─── Skeleton Card ────────────────────────────────────────────────────────────
+
+function SkeletonCard() {
+  return (
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden animate-pulse">
+      <div className="aspect-video bg-zinc-200 dark:bg-zinc-800" />
+      <div className="p-5 space-y-3">
+        <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-1/3" />
+        <div className="h-5 bg-zinc-200 dark:bg-zinc-800 rounded w-5/6" />
+        <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-full" />
+        <div className="h-4 bg-zinc-200 dark:bg-zinc-800 rounded w-2/3" />
+        <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
+        <div className="flex justify-between">
+          <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-1/4" />
+          <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-1/4" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function ExplorePage() {
+  const [query, setQuery] = React.useState("");
+  const [debouncedQuery, setDebouncedQuery] = React.useState("");
+  const [activeCategory, setActiveCategory] = React.useState("All");
+  const [activeSentiment, setActiveSentiment] = React.useState("All");
+  const [sortBy, setSortBy] = React.useState("newest");
+  const [page, setPage] = React.useState(1);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [filtersOpen, setFiltersOpen] = React.useState(false);
+  const [articles, setArticles] = React.useState<Article[]>(ALL_ARTICLES);
+
+  React.useEffect(() => {
+    getArticles()
+      .then((data) => {
+        if (data && data.length > 0) {
+          const dbArticles = data.map((a: any) => ({
+            id: a._id || a.id,
+            title: a.title,
+            excerpt: a.excerpt,
+            content: a.content,
+            category: a.category,
+            readTime: a.readTime || "5 min",
+            publishedAt: new Date(a.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+            imageUrl: a.imageUrl || "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800",
+            likes: a.likes || 0,
+            views: a.views || 0,
+            sentiment: a.sentiment || "neutral",
+            author: a.author || { name: "NewsMind Agent", avatar: "" },
+            tags: a.tags || [],
+            sentimentScore: a.sentimentScore || 0.5
+          }));
+          const combined = [...dbArticles, ...ALL_ARTICLES];
+          const unique = combined.filter((art, index, self) =>
+            index === self.findIndex((t) => t.title === art.title)
+          );
+          setArticles(unique);
+        }
+      })
+      .catch((err) => console.error("Error fetching explore articles:", err));
+  }, []);
+
+  // Debounce search query
+  React.useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedQuery(query);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  // Simulate loading on filter change
+  React.useEffect(() => {
+    setIsLoading(true);
+    const t = setTimeout(() => setIsLoading(false), 600);
+    return () => clearTimeout(t);
+  }, [debouncedQuery, activeCategory, activeSentiment, sortBy, page]);
+
+  const filtered = React.useMemo(() => {
+    let result = [...articles];
+    if (debouncedQuery) {
+      const q = debouncedQuery.toLowerCase();
+      result = result.filter(
+        (a) =>
+          a.title.toLowerCase().includes(q) ||
+          a.excerpt.toLowerCase().includes(q) ||
+          a.tags.some((t) => t.toLowerCase().includes(q))
+      );
+    }
+    if (activeCategory !== "All") result = result.filter((a) => a.category === activeCategory);
+    if (activeSentiment !== "All") result = result.filter((a) => a.sentiment === activeSentiment.toLowerCase());
+    if (sortBy === "rated") result = [...result].sort((a, b) => b.sentimentScore - a.sentimentScore);
+    if (sortBy === "trending") result = [...result].sort(() => Math.random() - 0.5);
+    return result;
+  }, [debouncedQuery, activeCategory, activeSentiment, sortBy]);
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const clearFilters = () => {
+    setQuery("");
+    setActiveCategory("All");
+    setActiveSentiment("All");
+    setSortBy("newest");
+    setPage(1);
+  };
+
+  const hasActiveFilters = query || activeCategory !== "All" || activeSentiment !== "All" || sortBy !== "newest";
+
+  return (
+    <>
+      <Navbar />
+      <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+        {/* Hero search banner */}
+        <section className="bg-zinc-900 py-12 px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-4xl text-center space-y-5">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Explore the World&apos;s News
+            </h1>
+            <p className="text-zinc-400 font-medium text-base sm:text-lg">
+              Search, filter, and discover AI-analyzed articles from every corner of the globe.
+            </p>
+            {/* Search */}
+            <div className="relative max-w-2xl mx-auto">
+              <FaMagnifyingGlass className="absolute top-1/2 -translate-y-1/2 left-4 size-4 text-zinc-400 pointer-events-none" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by title, topic, or keyword..."
+                className="w-full h-12 rounded-xl border border-zinc-700 bg-zinc-800 pl-12 pr-12 text-sm font-medium text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all"
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery("")}
+                  className="absolute top-1/2 -translate-y-1/2 right-4 text-zinc-400 hover:text-white transition-colors"
+                >
+                  <FaXmark className="size-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+          {/* Controls row */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {/* Category pills */}
+            <div className="flex flex-wrap gap-2">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => { setActiveCategory(cat); setPage(1); }}
+                  className={`rounded-full px-3 py-1 text-xs font-bold transition-all ${
+                    activeCategory === cat
+                      ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900 shadow-sm"
+                      : "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-500"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Right controls */}
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setFiltersOpen((p) => !p)}
+                className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+              >
+                <FaSliders className="size-3.5" />
+                Filters
+              </button>
+
+              <div className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2">
+                <FaArrowUpWideShort className="size-3.5 text-zinc-400" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
+                  className="text-xs font-bold text-zinc-700 dark:text-zinc-300 bg-transparent focus:outline-none cursor-pointer"
+                >
+                  {SORT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="flex items-center gap-1 text-xs font-bold text-rose-500 hover:text-rose-600 transition-colors"
+                >
+                  <FaXmark className="size-3" /> Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Expanded filter panel */}
+          {filtersOpen && (
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-5 space-y-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Sentiment</p>
+                <div className="flex flex-wrap gap-2">
+                  {["All", "Positive", "Neutral", "Negative"].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => { setActiveSentiment(s); setPage(1); }}
+                      className={`rounded-full px-3 py-1 text-xs font-bold border transition-all ${
+                        activeSentiment === s
+                          ? s === "Positive" ? "bg-emerald-500 border-emerald-500 text-white"
+                            : s === "Negative" ? "bg-rose-500 border-rose-500 text-white"
+                            : s === "Neutral" ? "bg-amber-500 border-amber-500 text-white"
+                            : "bg-zinc-900 border-zinc-900 text-white dark:bg-zinc-50 dark:border-zinc-50 dark:text-zinc-900"
+                          : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-zinc-400"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Results header */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">
+              {isLoading ? "Searching..." : `${filtered.length} article${filtered.length !== 1 ? "s" : ""} found`}
+            </p>
+            {debouncedQuery && (
+              <p className="text-sm font-medium text-zinc-500">
+                Results for: <span className="font-bold text-zinc-900 dark:text-zinc-50">&ldquo;{debouncedQuery}&rdquo;</span>
+              </p>
+            )}
+          </div>
+
+          {/* Articles grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {isLoading
+              ? Array.from({ length: PAGE_SIZE }).map((_, i) => <SkeletonCard key={i} />)
+              : paginated.length > 0
+              ? paginated.map((article) => (
+                  <ArticleCard key={article.id} article={article} />
+                ))
+              : (
+                <div className="col-span-full flex flex-col items-center justify-center py-24 gap-4 text-center">
+                  <FaMagnifyingGlass className="size-12 text-zinc-300 dark:text-zinc-700" />
+                  <p className="text-lg font-bold text-zinc-500">No articles found</p>
+                  <p className="text-sm text-zinc-400 max-w-xs">
+                    Try different keywords or clear your filters.
+                  </p>
+                  <Button onClick={clearFilters} variant="outline" size="sm" className="rounded-lg cursor-pointer font-bold">
+                    Clear All Filters
+                  </Button>
+                </div>
+              )
+            }
+          </div>
+
+          {/* Pagination */}
+          {!isLoading && totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="flex size-8 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <FaChevronLeft className="size-3" />
+              </button>
+
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setPage(i + 1)}
+                  className={`flex size-8 items-center justify-center rounded-full text-xs font-bold transition-all ${
+                    page === i + 1
+                      ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900 shadow-sm"
+                      : "border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="flex size-8 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <FaChevronRight className="size-3" />
+              </button>
+            </div>
+          )}
+
+          {/* Read time stats strip */}
+          {!isLoading && filtered.length > 0 && (
+            <div className="flex items-center justify-center gap-2 text-xs text-zinc-400 font-medium pt-2">
+              <FaRegClock className="size-3" />
+              <span>Total reading time for current results: ~{filtered.reduce((acc, a) => acc + parseInt(a.readTime), 0)} min</span>
+            </div>
+          )}
+        </div>
+      </main>
+      <Footer />
+    </>
+  );
+}
