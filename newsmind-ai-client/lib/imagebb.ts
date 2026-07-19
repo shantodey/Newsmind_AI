@@ -1,7 +1,3 @@
-/**
- * ImageBB upload utility
- * API key is read from NEXT_PUBLIC_IMG_UPLOAD_API env variable
- */
 
 export interface ImageBBResponse {
   data: {
@@ -15,9 +11,7 @@ export interface ImageBBResponse {
   status: number;
 }
 
-/**
- * Upload a file (or base64 string) to ImageBB and return the public URL.
- */
+
 export async function uploadToImageBB(file: File): Promise<string> {
   const apiKey = process.env.NEXT_PUBLIC_IMG_UPLOAD_API;
   if (!apiKey) throw new Error("ImageBB API key not configured");

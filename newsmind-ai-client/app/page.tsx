@@ -144,7 +144,7 @@ const MOCK_VIDEOS: VideoItem[] = [
     duration: "12:15",
     views: "124K views",
     imageUrl:
-      "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=800",
+      "https://storage.ghost.io/c/9f/98/9f98c569-396e-485a-be2d-9d9c9af5e0bb/content/images/size/w1200/2025/09/AI-research-labs.jpg",
     category: "Technology",
     publishedAt: "2 days ago",
   },
@@ -294,10 +294,7 @@ export default function Home() {
                 </div>
 
                 <div className="flex gap-2">
-                  <button
-                    onClick={handleHeroPrev}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-                  >
+                  <button  onClick={handleHeroPrev} className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
                     ←
                   </button>
                   <button
