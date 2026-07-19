@@ -34,15 +34,12 @@ export function Navbar() {
   ];
 
   const handleSignOut = async () => {
-    await signOut({
-      callbackURL: "/",
-    });
+    await signOut();
     router.refresh();
   };
 
   const user = session?.user;
-  // Check if role is admin
-  const isAdmin = user?.role === "admin";
+  const isAdmin = (user as { role?: string } | undefined)?.role === "admin";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-100 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/80">

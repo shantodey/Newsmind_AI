@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { uploadToImageBB } from "@/lib/imagebb";
-import { createArticle, generateAiTagsAndSummary } from "@/app/actions";
+import { createArticle, generateAiTagsAndSummary } from "@/lib/server";
 
 const CATEGORIES = ["Technology", "Sport", "Politics", "Business", "Science", "Health", "Entertainment", "World", "Climate", "AI"];
 
@@ -49,6 +49,7 @@ export default function NewArticlePage() {
     defaultValues: { status: "draft", category: "Technology" },
   });
 
+  const titleValue = watch("title");
   const contentValue = watch("content");
 
   // Image selection handler

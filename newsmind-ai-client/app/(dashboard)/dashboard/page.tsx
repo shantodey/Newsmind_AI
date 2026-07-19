@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { useSession } from "@/lib/auth-client";
-import { getArticleStats } from "@/app/actions";
+import { getArticleStats } from "@/lib/server";
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
 const ACTIVITY_DATA = [

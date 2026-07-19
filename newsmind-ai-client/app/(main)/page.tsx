@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { getArticles } from "@/app/actions";
+import { getArticles } from "@/lib/server";
 import {
   FaRegClock,
   FaRegBookmark,

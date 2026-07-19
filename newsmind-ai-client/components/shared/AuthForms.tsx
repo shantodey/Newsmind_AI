@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { FaRegLightbulb, FaGoogle, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser} from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import { signIn, signUp } from "@/lib/auth-client";
-import { syncExpressAuth } from "@/app/actions";
+import { syncExpressAuth } from "@/lib/server";
 
 type LoginValues = { email: string; password: string };
 type RegisterValues = { name: string; email: string; password: string; confirm: string };

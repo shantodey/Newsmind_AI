@@ -3,19 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  FaChevronRight,
-  FaRegClock,
-  FaRegCalendar,
-  FaRegEye,
-  FaRegCommentDots,
-  FaShareNodes,
-  FaTwitter,
-  FaFacebookF,
-  FaLinkedinIn,
-  FaLink,
-  FaRobot,
-  FaCircleCheck,
+import { FaChevronRight, FaRegClock, FaRegCalendar, FaRegEye, FaRegCommentDots, FaShareNodes, FaTwitter, FaFacebookF, FaLinkedinIn, FaLink, FaRobot,  FaCircleCheck,
   FaArrowLeft,
   FaArrowRight,
   FaBrain,
@@ -28,7 +16,7 @@ import { ArticleSidebar } from "@/components/shared/ArticleSidebar";
 import { CommentSection } from "@/components/shared/CommentSection";
 import { ArticleCard, type Article } from "@/components/shared/ArticleCard";
 
-// ─── Static mock data ────────────────────────────────────────────────────────
+
 
 const ARTICLE = {
   id: "sport-ai-data-revolution",
@@ -152,7 +140,7 @@ const RELATED_ARTICLES: Article[] = [
   },
 ];
 
-// ─── AI Insight Panel ─────────────────────────────────────────────────────────
+
 
 function AiInsightPanel({ onClose }: { onClose: () => void }) {
   const [phase, setPhase] = React.useState<"idle" | "loading" | "done">("idle");
@@ -187,23 +175,15 @@ function AiInsightPanel({ onClose }: { onClose: () => void }) {
             NewsMind AI Analysis
           </h3>
         </div>
-        <button
-          onClick={onClose}
-          className="text-xs font-bold text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
-        >
+        <button onClick={onClose} className="text-xs font-bold text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors">
           ✕ Close
         </button>
       </div>
 
       {phase === "idle" && (
         <div className="text-center py-4 space-y-3">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">
-            Run a deep AI analysis on this article: sentiment, bias, readability, and more.
-          </p>
-          <Button
-            onClick={() => setPhase("loading")}
-            className="bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg px-6 cursor-pointer"
-          >
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium"> Run a deep AI analysis on this article: sentiment, bias, readability, and more. </p>
+          <Button  onClick={() => setPhase("loading")}  className="bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg px-6 cursor-pointer">
             <FaRobot className="mr-2 size-4" /> Analyze Now
           </Button>
         </div>
@@ -212,24 +192,17 @@ function AiInsightPanel({ onClose }: { onClose: () => void }) {
       {phase === "loading" && (
         <div className="text-center py-6 space-y-2">
           <FaRobot className="size-8 text-teal-500 mx-auto animate-bounce" />
-          <p className="text-sm font-bold text-teal-700 dark:text-teal-400">
-            Analyzing article{dots}
-          </p>
-          <p className="text-xs text-zinc-400 font-medium">
-            Running NLP pipeline · Checking sources · Scoring bias
-          </p>
+          <p className="text-sm font-bold text-teal-700 dark:text-teal-400"> Analyzing article{dots}</p>
+          <p className="text-xs text-zinc-400 font-medium">  Running NLP pipeline · Checking sources · Scoring bias</p>
         </div>
       )}
 
       {phase === "done" && (
         <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
-          <p className="text-xs font-semibold text-teal-700 dark:text-teal-400 uppercase tracking-widest">
-            Analysis Complete
-          </p>
+          <p className="text-xs font-semibold text-teal-700 dark:text-teal-400 uppercase tracking-widest"> Analysis Complete</p>
           <div className="space-y-2">
             {insights.map((item) => (
-              <div
-                key={item.label}
+              <div key={item.label}
                 className="flex items-center justify-between rounded-lg bg-white/80 dark:bg-zinc-900/60 border border-zinc-100 dark:border-zinc-800 px-3 py-2"
               >
                 <div className="flex items-center gap-2">
@@ -253,7 +226,6 @@ function AiInsightPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ─── Share Bar ────────────────────────────────────────────────────────────────
 
 function ShareBar() {
   const [copied, setCopied] = React.useState(false);
@@ -292,8 +264,6 @@ function ShareBar() {
     </div>
   );
 }
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ArticleDetailPage() {
   const [showAiPanel, setShowAiPanel] = React.useState(false);

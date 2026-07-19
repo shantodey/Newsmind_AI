@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { useSession } from "@/lib/auth-client";
-import { getArticles } from "@/app/actions";
+import { getArticles } from "@/lib/server";
 
 type ProfileValues = { name: string; email: string; bio: string; location: string };
 
