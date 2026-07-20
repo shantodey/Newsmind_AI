@@ -1,15 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  FaRobot,
-  FaArrowRight,
-  FaCheck,
-  FaCircleNotch,
-  FaFaceSmile,
-  FaFaceMeh,
-  FaFaceFrown,
-} from "react-icons/fa6";
+import {FaRobot,FaArrowRight,FaCheck,FaCircleNotch,FaFaceSmile,FaFaceMeh,FaFaceFrown,} from "react-icons/fa6";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Article } from "./ArticleCard";
@@ -76,28 +68,34 @@ export function AiSimulator({ selectedArticle }: AiSimulatorProps) {
   }, [selectedArticle]);
 
   const getSentimentIcon = (sentiment: string) => {
-    switch (sentiment) {
+    switch (sentiment?.toLowerCase()) {
       case "positive":
         return <FaFaceSmile className="size-4 text-emerald-500" />;
       case "neutral":
         return <FaFaceMeh className="size-4 text-amber-500" />;
       case "negative":
         return <FaFaceFrown className="size-4 text-rose-500" />;
+      default:
+        return <FaFaceMeh className="size-4 text-zinc-400" />;
     }
   };
 
   const getSentimentColor = (sentiment: string) => {
-    switch (sentiment) {
+    switch (sentiment?.toLowerCase()) {
       case "positive":
         return "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border-emerald-200/50";
       case "neutral":
         return "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400 border-amber-200/50";
+      case "negative":
       case "rose":
         return "bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400 border-rose-200/50";
       default:
         return "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300";
     }
   };
+
+  // সেফটি চেক: tags অ্যারে না থাকলে খালি অ্যারে সেট করবে যেন লুপ ক্র্যাশ না করে
+  const extractedTags = Array.isArray(selectedArticle?.tags) ? selectedArticle.tags : [];
 
   return (
     <Card className="border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 h-full flex flex-col">
@@ -132,7 +130,7 @@ export function AiSimulator({ selectedArticle }: AiSimulatorProps) {
                 SIMULATION TARGET
               </span>
               <h4 className="line-clamp-1 text-sm font-bold text-zinc-800 dark:text-zinc-200 mt-1.5 leading-tight">
-                {selectedArticle.title}
+                {selectedArticle?.title || "Untitled Article"}
               </h4>
             </div>
 
@@ -176,15 +174,14 @@ export function AiSimulator({ selectedArticle }: AiSimulatorProps) {
               <div className="flex-1 space-y-4 animate-fade-in">
                 {/* Sentiment & reading time */}
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-lg border border-zinc-100 bg-zinc-50/50 p-2.5 dark:border-zinc-800 dark:bg-zinc-900/30">
-                    <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block">
+                  <div className={`rounded-lg border p-2.5 ${getSentimentColor(selectedArticle?.sentiment || "neutral")}`}>
+                    <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
                       Sentiment
                     </span>
                     <div className="flex items-center gap-1.5 mt-1">
-                      {getSentimentIcon(selectedArticle.sentiment)}
-                      <span className="text-xs font-extrabold text-zinc-800 dark:text-zinc-200 capitalize">
-                        {selectedArticle.sentiment} (
-                        {Math.round(selectedArticle.sentimentScore * 100)}%)
+                      {getSentimentIcon(selectedArticle?.sentiment || "neutral")}
+                      <span className="text-xs font-extrabold capitalize">
+                        {selectedArticle?.sentiment || "neutral"} ({Math.round((selectedArticle?.sentimentScore || 0) * 100)}%)
                       </span>
                     </div>
                   </div>
@@ -193,7 +190,7 @@ export function AiSimulator({ selectedArticle }: AiSimulatorProps) {
                       Reading Time
                     </span>
                     <span className="text-xs font-extrabold text-zinc-800 dark:text-zinc-200 block mt-1">
-                      {selectedArticle.readTime}
+                      {selectedArticle?.readTime || "1 min read"}
                     </span>
                   </div>
                 </div>
@@ -206,12 +203,12 @@ export function AiSimulator({ selectedArticle }: AiSimulatorProps) {
                   <ul className="space-y-1 text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">
                     <li className="flex items-start gap-1.5">
                       <FaArrowRight className="size-2 text-teal-600 dark:text-teal-400 mt-1 shrink-0" />
-                      <span>{selectedArticle.excerpt}</span>
+                      <span>{selectedArticle?.excerpt || "No summary available."}</span>
                     </li>
                     <li className="flex items-start gap-1.5">
                       <FaArrowRight className="size-2 text-teal-600 dark:text-teal-400 mt-1 shrink-0" />
                       <span>
-                        Key takeaway: Critical impact analyzed on {selectedArticle.category.toLowerCase()}{" "}
+                        Key takeaway: Critical impact analyzed on {(selectedArticle?.category || "General").toLowerCase()}{" "}
                         and surrounding news vectors.
                       </span>
                     </li>
@@ -224,15 +221,19 @@ export function AiSimulator({ selectedArticle }: AiSimulatorProps) {
                     Extracted Tags
                   </span>
                   <div className="flex flex-wrap gap-1.5">
-                    {selectedArticle.tags.map((tag) => (
-                      <Badge
-                        key={tag}
-                        variant="secondary"
-                        className="text-[10px] h-5 py-0 px-2 font-semibold bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 border-none"
-                      >
-                        #{tag}
-                      </Badge>
-                    ))}
+                    {extractedTags.length > 0 ? (
+                      extractedTags.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="secondary"
+                          className="text-[10px] h-5 py-0 px-2 font-semibold bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200 border-none"
+                        >
+                          #{tag}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-xs text-zinc-400 dark:text-zinc-600 italic">No tags extracted</span>
+                    )}
                   </div>
                 </div>
 

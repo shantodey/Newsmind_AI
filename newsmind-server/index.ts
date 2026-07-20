@@ -5,6 +5,9 @@ import { MongoClient, ObjectId } from "mongodb";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
+// ------------------------------
+// 1) App setup
+// ------------------------------
 const app = express();
 const port = Number(process.env.PORT || 5001);
 const mongoUri = process.env.MONGODB_URI;
@@ -13,6 +16,9 @@ if (!mongoUri) {
   throw new Error("MONGODB_URI is not defined");
 }
 
+// ------------------------------
+// 2) MongoDB setup
+// ------------------------------
 const client = new MongoClient(mongoUri);
 const db = client.db(process.env.MONGO_DB_NAME || "newsmind-ai");
 const users = db.collection("users");
@@ -20,6 +26,9 @@ const articles = db.collection("articles");
 const comments = db.collection("comments");
 const analytics = db.collection("analytics");
 
+// ------------------------------
+// 3) Middleware
+// ------------------------------
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || "http://localhost:3000",
@@ -28,6 +37,9 @@ app.use(
 );
 app.use(express.json());
 
+// ------------------------------
+// 4) Helper functions
+// ------------------------------
 function getJwtSecret() {
   return process.env.JWT_SECRET || "dev-secret";
 }
@@ -58,20 +70,35 @@ function normalizeArticle(article: any) {
   };
 }
 
+// ------------------------------
+// 5) MongoDB connection helpers
+// ------------------------------
 export async function connectToMongoDB() {
-  await client.connect();
-  console.log("[server]: Connected to MongoDB successfully");
-  return client;
+  try {
+    await client.connect();
+    console.log("[server]: Connected to MongoDB successfully");
+    return client;
+  } catch (error) {
+    console.error("[server]: Failed to connect to MongoDB", error);
+    throw error;
+  }
 }
 
 export async function disconnectFromMongoDB() {
   await client.close();
 }
 
+// ------------------------------
+// 6) Basic routes
+// ------------------------------
 app.get("/health", (_req: Request, res: Response) => {
+  // This route checks if the server is alive.
   res.json({ status: "ok", message: "NewsMind AI API is running" });
 });
 
+// ------------------------------
+// 7) Authentication routes
+// ------------------------------
 app.post("/api/auth/register", async (req: Request, res: Response) => {
   try {
     const { name, email, password } = req.body;
@@ -165,14 +192,25 @@ app.get("/api/auth/me", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    res.json({ user: { id: user._id.toString(), name: user.name, email: user.email, role: user.role, avatar: user.avatar } });
+    res.json({
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+      },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to fetch user" });
   }
 });
 
-app.get("/api/articles/stats", async (req: Request, res: Response) => {
+// ------------------------------
+// 8) Article routes
+// ------------------------------
+app.get("/api/articles/stats", async (_req: Request, res: Response) => {
   try {
     const [totalArticles, totalPublished, totalDraft, totalViews, totalLikes] = await Promise.all([
       articles.countDocuments(),
@@ -195,6 +233,9 @@ app.get("/api/articles/stats", async (req: Request, res: Response) => {
   }
 });
 
+
+
+// for getting articles data form database
 app.get("/api/articles", async (req: Request, res: Response) => {
   try {
     const q = String(req.query.q || "");
@@ -203,19 +244,26 @@ app.get("/api/articles", async (req: Request, res: Response) => {
     const sort = String(req.query.sort || "newest");
     const page = Math.max(1, Number(req.query.page || 1));
     const limit = Math.min(50, Math.max(1, Number(req.query.limit || 12)));
-    const status = String(req.query.status || "published");
+    const status = String(req.query.status || "published").toLowerCase();
 
     const filter: any = {};
-    if (status === "draft") filter.status = "draft";
-    else filter.status = "published";
+    if (status === "draft") {
+      filter.status = "draft";
+    } else if (status === "all") {
+      // keep all statuses visible for admin or debugging views
+    } else {
+      filter.$or = [{ status: "published" }, { status: { $exists: false } }];
+    }
 
     if (category && category !== "All") filter.category = category;
     if (sentiment && sentiment !== "All") filter.sentiment = sentiment.toLowerCase();
-    if (q) filter.$or = [
-      { title: { $regex: q, $options: "i" } },
-      { excerpt: { $regex: q, $options: "i" } },
-      { content: { $regex: q, $options: "i" } },
-    ];
+    if (q) {
+      filter.$or = [
+        { title: { $regex: q, $options: "i" } },
+        { excerpt: { $regex: q, $options: "i" } },
+        { content: { $regex: q, $options: "i" } },
+      ];
+    }
 
     const sortMap: Record<string, any> = {
       newest: { createdAt: -1 },
@@ -242,57 +290,62 @@ app.get("/api/articles", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/articles", async (req: Request, res: Response) => {
-  try {
-    const { title, excerpt, content, category, tags, imageUrl, status } = req.body;
 
-    if (!title || !excerpt || !content || !category) {
-      return res.status(400).json({ error: "Title, excerpt, content, and category are required" });
+// for adding new articles data to database 
+  app.post("/api/articles", async (req: Request, res: Response) => {
+    try {
+      const { title, excerpt, content, category, tags, imageUrl, status } = req.body;
+
+      if (!title || !excerpt || !content || !category) {
+        return res.status(400).json({ error: "Title, excerpt, content, and category are required" });
+      }
+
+      const wordCount = String(content).trim().split(/\s+/).filter(Boolean).length;
+      const readTime = `${Math.max(1, Math.ceil(wordCount / 200))} min`;
+      const normalizedStatus = String(status || "published").toLowerCase() === "draft" ? "draft" : "published";
+
+      const result = await articles.insertOne({
+        title,
+        excerpt,
+        content,
+        category,
+        tags: tags || [],
+        imageUrl: imageUrl || "",
+        author: req.headers["x-user-id"] || "system",
+        status: normalizedStatus,
+        views: 0,
+        likes: 0,
+        sentiment: "neutral",
+        sentimentScore: 0.5,
+        readTime,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const inserted = await articles.findOne({ _id: result.insertedId });
+      res.status(201).json({ article: normalizeArticle(inserted) });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to create article" });
     }
+  });
 
-    const wordCount = String(content).trim().split(/\s+/).filter(Boolean).length;
-    const readTime = `${Math.max(1, Math.ceil(wordCount / 200))} min`;
+// for getting singile articles data 
+  app.get("/api/articles/:id", async (req: Request, res: Response) => {
+    try {
+      const article = await articles.findOne({ _id: new ObjectId(req.params.id) });
+      if (!article) {
+        return res.status(404).json({ error: "Article not found" });
+      }
 
-    const result = await articles.insertOne({
-      title,
-      excerpt,
-      content,
-      category,
-      tags: tags || [],
-      imageUrl: imageUrl || "",
-      author: req.headers["x-user-id"] || "system",
-      status: status || "draft",
-      views: 0,
-      likes: 0,
-      sentiment: "neutral",
-      sentimentScore: 0.5,
-      readTime,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    const inserted = await articles.findOne({ _id: result.insertedId });
-    res.status(201).json({ article: normalizeArticle(inserted) });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to create article" });
-  }
-});
-
-app.get("/api/articles/:id", async (req: Request, res: Response) => {
-  try {
-    const article = await articles.findOne({ _id: new ObjectId(req.params.id) });
-    if (!article) {
-      return res.status(404).json({ error: "Article not found" });
+      await articles.updateOne({ _id: article._id }, { $inc: { views: 1 } });
+      res.json({ article: normalizeArticle(article) });
     }
-
-    await articles.updateOne({ _id: article._id }, { $inc: { views: 1 } });
-    res.json({ article: normalizeArticle(article) });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to fetch article" });
-  }
-});
+    catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to fetch article" });
+    }
+  });
 
 app.patch("/api/articles/:id", async (req: Request, res: Response) => {
   try {
@@ -353,7 +406,7 @@ app.post("/api/articles/:id/like", async (req: Request, res: Response) => {
 
 app.get("/api/articles/:id/comments", async (req: Request, res: Response) => {
   try {
-    const data = await comments.find({ article: req.params.id, parentId: null }).sort({ createdAt: -1 }).toArray();
+    const data = await comments.find({ article: req.params.id }).sort({ createdAt: -1 }).toArray();
     res.json({ comments: data });
   } catch (error) {
     console.error(error);
@@ -385,6 +438,9 @@ app.post("/api/articles/:id/comments", async (req: Request, res: Response) => {
   }
 });
 
+// ------------------------------
+// 9) AI routes
+// ------------------------------
 app.post("/api/ai/summarize", async (req: Request, res: Response) => {
   try {
     const { articleId, text, length = "medium" } = req.body;
@@ -395,7 +451,10 @@ app.post("/api/ai/summarize", async (req: Request, res: Response) => {
       if (article) content = article.content;
     }
 
-    const sentences = content.split(/[.!?]+/).map((s: string) => s.trim()).filter((s: string) => s.length > 5);
+    const sentences = content
+      .split(/[.!?]+/)
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length > 5);
     const bulletCount = length === "short" ? 3 : length === "long" ? 7 : 5;
     const bullets = sentences.slice(0, bulletCount).map((s: string) => `${s}.`);
 
@@ -502,6 +561,9 @@ app.get("/api/ai/recommendations", async (_req: Request, res: Response) => {
   }
 });
 
+// ------------------------------
+// 10) Start server
+// ------------------------------
 connectToMongoDB()
   .then(() => {
     app.listen(port, () => {
@@ -513,3 +575,5 @@ connectToMongoDB()
   });
 
 export default app;
+
+

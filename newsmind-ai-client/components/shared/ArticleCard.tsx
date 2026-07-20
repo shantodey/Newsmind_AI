@@ -29,7 +29,7 @@ export interface Article {
   publishedAt: string;
   readTime: string;
   sentiment: "positive" | "neutral" | "negative";
-  sentimentScore: number; // e.g. 0.95
+  sentimentScore: number;
   tags: string[];
 }
 
@@ -39,6 +39,10 @@ interface ArticleCardProps {
   className?: string;
 }
 
+// ডিফল্ট ইমেজ প্লেসহোল্ডার যা ইউআরএল ইনভ্যালিড হলে ব্যবহৃত হবে
+const DEFAULT_ARTICLE_IMAGE = "https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=600";
+const DEFAULT_AVATAR_IMAGE = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100";
+
 export function ArticleCard({
   article,
   onSelectForAi,
@@ -46,6 +50,15 @@ export function ArticleCard({
 }: ArticleCardProps) {
   const [isLiked, setIsLiked] = React.useState(false);
   const [isBookmarked, setIsBookmarked] = React.useState(false);
+
+  // সেফটি চেক: ইউআরএল সঠিকভাবে স্ট্রিং কিনা তা যাচাই করা
+  const validImageUrl = (typeof article?.imageUrl === 'string' && article.imageUrl.trim() !== '') 
+    ? article.imageUrl 
+    : DEFAULT_ARTICLE_IMAGE;
+
+  const validAvatarUrl = (typeof article?.author?.avatar === 'string' && article.author.avatar.trim() !== '') 
+    ? article.author.avatar 
+    : DEFAULT_AVATAR_IMAGE;
 
   const getSentimentDetails = (sentiment: "positive" | "neutral" | "negative") => {
     switch (sentiment) {
@@ -70,7 +83,7 @@ export function ArticleCard({
     }
   };
 
-  const sentiment = getSentimentDetails(article.sentiment);
+  const sentiment = getSentimentDetails(article?.sentiment || "neutral");
 
   return (
     <Card
@@ -78,16 +91,16 @@ export function ArticleCard({
     >
       {/* Image container */}
       <div className="relative aspect-video w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900">
-        <Image
-          src={article.imageUrl}
-          alt={article.title}
-          fill
+        <Image 
+          src={validImageUrl} 
+          alt={article?.title || "News Image"} 
+          fill 
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
           <Badge className="bg-zinc-900/90 text-zinc-50 border-none shadow-sm dark:bg-zinc-100 dark:text-zinc-900">
-            {article.category}
+            {article?.category || "General"}
           </Badge>
         </div>
       </div>
@@ -97,22 +110,22 @@ export function ArticleCard({
         <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 mb-2">
           <div className="flex items-center gap-1.5">
             <FaRegClock className="size-3" />
-            <span>{article.readTime}</span>
+            <span>{article?.readTime || "1 min read"}</span>
           </div>
-          <span>{article.publishedAt}</span>
+          <span>{article?.publishedAt}</span>
         </div>
 
         <Link
-          href={`/article/${article.id}`}
+          href={`/article/${article?.id}`}
           className="mb-2 block group-hover:text-zinc-900 dark:group-hover:text-zinc-50"
         >
           <h3 className="line-clamp-2 text-lg font-bold leading-tight text-zinc-800 transition-colors dark:text-zinc-100 group-hover:underline decoration-zinc-400">
-            {article.title}
+            {article?.title || "No Title Available"}
           </h3>
         </Link>
 
         <p className="line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400 mb-4 flex-1">
-          {article.excerpt}
+          {article?.excerpt || "No summary available for this article."}
         </p>
 
         {/* AI Metrics Overlay */}
@@ -122,7 +135,7 @@ export function ArticleCard({
           >
             {sentiment.icon}
             <span>
-              {sentiment.label} ({Math.round(article.sentimentScore * 100)}%)
+              {sentiment.label} ({Math.round((article?.sentimentScore || 0) * 100)}%)
             </span>
           </span>
 
@@ -142,14 +155,14 @@ export function ArticleCard({
         <div className="flex items-center gap-2">
           <div className="relative size-6 overflow-hidden rounded-full">
             <Image
-              src={article.author.avatar}
-              alt={article.author.name}
+              src={validAvatarUrl}
+              alt={article?.author?.name || "Author"}
               fill
               className="object-cover"
             />
           </div>
           <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-            {article.author.name}
+            {article?.author?.name || "Unknown"}
           </span>
         </div>
 

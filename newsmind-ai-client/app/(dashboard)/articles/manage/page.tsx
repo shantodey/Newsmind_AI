@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
+import { getArticleStats, getAllArticlesForManage, deleteArticle, updateArticle } from "@/lib/server";
+
 
 interface ArticleRow {
   id: string;
@@ -25,17 +27,6 @@ interface ArticleRow {
   sentiment: "positive" | "neutral" | "negative";
 }
 
-const MOCK_ARTICLES: ArticleRow[] = [
-  { id: "e1", title: "The Quantum Leap: How Quantum Computing Will Break Modern Encryption", category: "Technology", author: "Dr. Priya Kapoor", status: "published", views: 12400, publishedAt: "Jul 18, 2026", imageUrl: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=100&h=100&fit=crop", sentiment: "neutral" },
-  { id: "e2", title: "Champions League Final: Real Madrid's Historic Comeback", category: "Sport", author: "Carlos Romero", status: "published", views: 38200, publishedAt: "Jul 17, 2026", imageUrl: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=100&h=100&fit=crop", sentiment: "positive" },
-  { id: "e3", title: "Global Climate Summit Ends in Landmark Carbon Zero Accord", category: "Climate", author: "Amara Nwosu", status: "published", views: 9800, publishedAt: "Jul 17, 2026", imageUrl: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=100&h=100&fit=crop", sentiment: "positive" },
-  { id: "e4", title: "AI Chip Wars: NVIDIA vs. AMD vs. Intel", category: "Technology", author: "Marcus Elliot", status: "draft", views: 0, publishedAt: "—", imageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=100&h=100&fit=crop", sentiment: "neutral" },
-  { id: "e5", title: "Biotech Breakthrough: mRNA Cancer Vaccine Phase III", category: "Health", author: "Dr. Yuki Tanaka", status: "published", views: 21000, publishedAt: "Jul 15, 2026", imageUrl: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=100&h=100&fit=crop", sentiment: "positive" },
-  { id: "e6", title: "Federal Reserve Signals Three Rate Cuts in 2027", category: "Business", author: "Sarah Mitchell", status: "published", views: 15300, publishedAt: "Jul 15, 2026", imageUrl: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=100&h=100&fit=crop", sentiment: "positive" },
-  { id: "e7", title: "Mars Mission: Artemis VI Crew Training", category: "Science", author: "James Okafor", status: "draft", views: 0, publishedAt: "—", imageUrl: "https://images.unsplash.com/photo-1446776877081-d282a0f896e2?w=100&h=100&fit=crop", sentiment: "positive" },
-  { id: "e8", title: "UN Emergency Session on AI Governance", category: "AI", author: "Priya Kapoor", status: "published", views: 7600, publishedAt: "Jul 14, 2026", imageUrl: "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=100&h=100&fit=crop", sentiment: "neutral" },
-];
-
 const sentimentBadge = (s: ArticleRow["sentiment"]) => {
   if (s === "positive") return "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-none";
   if (s === "negative") return "bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border-none";
@@ -45,30 +36,67 @@ const sentimentBadge = (s: ArticleRow["sentiment"]) => {
 const PAGE_SIZE = 6;
 
 export default function ManageArticlesPage() {
-  const [articles, setArticles] = React.useState(MOCK_ARTICLES);
+  const [articles, setArticles] = React.useState<ArticleRow[]>([]);
   const [query, setQuery] = React.useState("");
   const [filter, setFilter] = React.useState<"all" | "published" | "draft">("all");
   const [page, setPage] = React.useState(1);
   const [deleteTarget, setDeleteTarget] = React.useState<string | null>(null);
   const [toast, setToast] = React.useState("");
 
+  React.useEffect(() => {
+    async function loadArticles() {
+      const data = await getAllArticlesForManage();
+      if (data) {
+        const mapped = data.map((a: any) => ({
+          id: a.id || a._id,
+          title: a.title,
+          category: a.category || "General",
+          author: typeof a.author === "string" ? a.author : (a.author?.name || "NewsMind Agent"),
+          status: a.status === "draft" ? "draft" : "published",
+          views: a.views || 0,
+          publishedAt: a.createdAt 
+            ? new Date(a.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+            : new Date().toLocaleDateString(),
+          imageUrl: a.imageUrl || "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800",
+          sentiment: a.sentiment || "neutral",
+        }));
+        setArticles(mapped);
+      }
+    }
+    loadArticles();
+  }, []);
+
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(""), 3000);
   };
 
-  const confirmDelete = (id: string) => {
-    setArticles((prev) => prev.filter((a) => a.id !== id));
-    setDeleteTarget(null);
-    showToast("Article deleted successfully.");
+  const confirmDelete = async (id: string) => {
+    const res = await deleteArticle(id);
+    if (res && !res.error) {
+      setArticles((prev) => prev.filter((a) => a.id !== id));
+      setDeleteTarget(null);
+      showToast("Article deleted successfully.");
+    } else {
+      showToast(res?.error || "Failed to delete article.");
+    }
   };
 
-  const toggleStatus = (id: string) => {
-    setArticles((prev) => prev.map((a) => a.id === id
-      ? { ...a, status: a.status === "published" ? "draft" : "published" }
-      : a
-    ));
-    showToast("Article status updated.");
+  const toggleStatus = async (id: string) => {
+    const target = articles.find((a) => a.id === id);
+    if (!target) return;
+    const newStatus = target.status === "published" ? "draft" : "published";
+
+    const res = await updateArticle(id, { status: newStatus });
+    if (res && !res.error) {
+      setArticles((prev) => prev.map((a) => a.id === id
+        ? { ...a, status: newStatus }
+        : a
+      ));
+      showToast("Article status updated.");
+    } else {
+      showToast(res?.error || "Failed to update article status.");
+    }
   };
 
   const filtered = React.useMemo(() => {

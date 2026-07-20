@@ -3,6 +3,8 @@
 import * as React from "react";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
+import { useSession } from "@/lib/auth-client";
+import { getComments, postComment } from "@/lib/server";
 import {
   FaRegHeart,
   FaHeart,
@@ -97,9 +99,10 @@ const INITIAL_COMMENTS: CommentData[] = [
 interface CommentCardProps {
   comment: CommentData;
   depth?: number;
+  onReply?: (parentId: string, body: string) => Promise<void>;
 }
 
-function CommentCard({ comment, depth = 0 }: CommentCardProps) {
+function CommentCard({ comment, depth = 0, onReply }: CommentCardProps) {
   const [liked, setLiked] = React.useState(false);
   const [likeCount, setLikeCount] = React.useState(comment.likes);
   const [showReplies, setShowReplies] = React.useState(true);
@@ -111,9 +114,10 @@ function CommentCard({ comment, depth = 0 }: CommentCardProps) {
     setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
   };
 
-  const onReplySubmit = (data: { reply: string }) => {
-    // In a real app this would call an API
-    console.log("Reply submitted:", data.reply);
+  const onReplySubmit = async (data: { reply: string }) => {
+    if (onReply) {
+      await onReply(comment.id, data.reply);
+    }
     reset();
     setReplying(false);
   };
@@ -121,7 +125,7 @@ function CommentCard({ comment, depth = 0 }: CommentCardProps) {
   const isNested = depth > 0;
 
   return (
-    <div className={`flex gap-3 ${isNested ? "ml-6 md:ml-10 mt-4" : ""}`}>
+    <div className={`relative flex gap-3 ${isNested ? "ml-6 md:ml-10 mt-4" : ""}`}>
       {/* Thread line for nested */}
       {isNested && (
         <div className="absolute left-0 top-0 h-full w-px bg-zinc-200 dark:bg-zinc-800" />
@@ -234,7 +238,7 @@ function CommentCard({ comment, depth = 0 }: CommentCardProps) {
         {comment.replies && comment.replies.length > 0 && showReplies && (
           <div className="relative space-y-0 border-l-2 border-zinc-100 dark:border-zinc-800 pl-1">
             {comment.replies.map((reply) => (
-              <CommentCard key={reply.id} comment={reply} depth={depth + 1} />
+              <CommentCard key={reply.id} comment={reply} depth={depth + 1} onReply={onReply} />
             ))}
           </div>
         )}
@@ -243,10 +247,11 @@ function CommentCard({ comment, depth = 0 }: CommentCardProps) {
   );
 }
 
-export function CommentSection() {
-  const [comments, setComments] = React.useState<CommentData[]>(INITIAL_COMMENTS);
+export function CommentSection({ articleId }: { articleId: string }) {
+  const [comments, setComments] = React.useState<CommentData[]>([]);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitted, setSubmitted] = React.useState(false);
+  const { data: session } = useSession();
 
   const {
     register,
@@ -255,26 +260,96 @@ export function CommentSection() {
     formState: { errors },
   } = useForm<CommentFormValues>();
 
+  const loadComments = React.useCallback(async () => {
+    if (!articleId) return;
+    const dbComments = await getComments(articleId);
+    if (dbComments) {
+      const currentUser = session?.user;
+      
+      const topLevel: CommentData[] = [];
+      const repliesMap: Record<string, CommentData[]> = {};
+
+      const formatComment = (c: any): CommentData => {
+        let name = "Anonymous Reader";
+        let avatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60&h=60&fit=crop";
+        
+        if (c.author === "anonymous") {
+          name = "Anonymous Reader";
+        } else if (currentUser && c.author === currentUser.id) {
+          name = currentUser.name || "You";
+          avatar = currentUser.image || avatar;
+        } else {
+          name = "NewsMind Reader";
+        }
+
+        return {
+          id: c.id || c._id,
+          author: { name, avatar },
+          body: c.body,
+          publishedAt: c.createdAt 
+            ? new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+            : "Just now",
+          likes: c.likes || 0,
+          replies: [],
+        };
+      };
+
+      dbComments.forEach((c: any) => {
+        const formatted = formatComment(c);
+        if (!c.parentId) {
+          topLevel.push(formatted);
+        } else {
+          if (!repliesMap[c.parentId]) {
+            repliesMap[c.parentId] = [];
+          }
+          repliesMap[c.parentId].push(formatted);
+        }
+      });
+
+      topLevel.forEach((parent) => {
+        parent.replies = repliesMap[parent.id] || [];
+      });
+
+      setComments(topLevel);
+    }
+  }, [articleId, session]);
+
+  React.useEffect(() => {
+    loadComments();
+  }, [loadComments]);
+
+  React.useEffect(() => {
+    if (session?.user) {
+      reset({
+        name: session.user.name || "",
+        email: session.user.email || "",
+      });
+    }
+  }, [session, reset]);
+
   const onSubmit = async (data: CommentFormValues) => {
     setIsSubmitting(true);
-    // Simulate network delay
-    await new Promise((r) => setTimeout(r, 800));
-    const newComment: CommentData = {
-      id: `c${Date.now()}`,
-      author: {
-        name: data.name,
-        avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60&h=60&fit=crop`,
-      },
-      body: data.body,
-      publishedAt: "Just now",
-      likes: 0,
-      replies: [],
-    };
-    setComments((prev) => [newComment, ...prev]);
-    reset();
-    setIsSubmitting(false);
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
+    const res = await postComment(articleId, data.body);
+    if (res && !res.error) {
+      reset({
+        name: session?.user?.name || "",
+        email: session?.user?.email || "",
+        body: ""
+      });
+      setIsSubmitting(false);
+      setSubmitted(true);
+      setTimeout(() => setSubmitted(false), 3000);
+      await loadComments();
+    } else {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReply = async (parentId: string, body: string) => {
+    const res = await postComment(articleId, body, parentId);
+    if (res && !res.error) {
+      await loadComments();
+    }
   };
 
   return (
@@ -370,7 +445,7 @@ export function CommentSection() {
       {/* Comments List */}
       <div className="space-y-6">
         {comments.map((comment) => (
-          <CommentCard key={comment.id} comment={comment} />
+          <CommentCard key={comment.id} comment={comment} onReply={handleReply} />
         ))}
       </div>
     </section>

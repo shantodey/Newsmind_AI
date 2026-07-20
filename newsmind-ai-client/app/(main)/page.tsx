@@ -4,14 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { getArticles } from "@/lib/server";
-import {
-  FaRegClock,
-  FaRegBookmark,
-  FaHeart,
-  FaArrowRight,
-  FaPlay,
-  FaRegLightbulb,
-} from "react-icons/fa6";
+import { FaRegClock, FaRegBookmark, FaHeart, FaArrowRight, FaPlay, FaRegLightbulb} from "react-icons/fa6";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { SectionHeader } from "@/components/shared/SectionHeader";
@@ -193,7 +186,7 @@ export default function Home() {
   React.useEffect(() => {
     getArticles()
       .then((data) => {
-        if (data && data.length > 0) {
+        if (data && data?.length > 0) {
           const dbArticles = data.map((a: any) => ({
             id: a._id || a.id,
             title: a.title,

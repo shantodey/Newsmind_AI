@@ -22,11 +22,15 @@ async function getAuthHeaders() {
   return { reqHeaders, session };
 }
 
-export async function getArticles(category?: string) {
+export async function getArticles(category?: string, status: "published" | "draft" | "all" = "published") {
   try {
-    const url = category && category !== "ALL"
-      ? `${BACKEND_URL}/api/articles?category=${encodeURIComponent(category)}`
-      : `${BACKEND_URL}/api/articles`;
+    const params = new URLSearchParams();
+    if (category && category !== "ALL") {
+      params.set("category", category);
+    }
+    params.set("status", status);
+
+    const url = `${BACKEND_URL}/api/articles?${params.toString()}`;
 
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error("Failed to fetch articles");
@@ -131,13 +135,164 @@ export async function syncExpressAuth(action: "login" | "register", name?: strin
   }
 }
 
-export async function getRandomDoctors(limit: number = 7) {
+export async function getAllArticlesForManage() {
   try {
-    const response = await fetch(`${BACKEND_URL}/doctors/random?limit=${limit}`, { cache: "no-store" });
-    if (!response.ok) return [];
-    return await response.json();
+    const { reqHeaders } = await getAuthHeaders();
+    const url = `${BACKEND_URL}/api/articles?status=all&limit=100`;
+    const res = await fetch(url, { headers: reqHeaders, cache: "no-store" });
+    if (!res.ok) throw new Error("Failed to fetch all articles for management");
+    const data = await res.json();
+    return data.articles || [];
   } catch (error) {
-    console.error("Server Action getRandomDoctors error:", error);
+    console.error("Server Action getAllArticlesForManage error:", error);
     return [];
   }
 }
+
+export async function deleteArticle(id: string) {
+  try {
+    const { reqHeaders } = await getAuthHeaders();
+    const res = await fetch(`${BACKEND_URL}/api/articles/${id}`, {
+      method: "DELETE",
+      headers: reqHeaders,
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || "Failed to delete article");
+    }
+    return await res.json();
+  } catch (error) {
+    console.error("Server Action deleteArticle error:", error);
+    return { error: error instanceof Error ? error.message : "Network error" };
+  }
+}
+
+export async function updateArticle(id: string, payload: any) {
+  try {
+    const { reqHeaders } = await getAuthHeaders();
+    const res = await fetch(`${BACKEND_URL}/api/articles/${id}`, {
+      method: "PATCH",
+      headers: reqHeaders,
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || "Failed to update article");
+    }
+    return await res.json();
+  } catch (error) {
+    console.error("Server Action updateArticle error:", error);
+    return { error: error instanceof Error ? error.message : "Network error" };
+  }
+}
+
+export async function likeArticle(id: string) {
+  try {
+    const { reqHeaders } = await getAuthHeaders();
+    const res = await fetch(`${BACKEND_URL}/api/articles/${id}/like`, {
+      method: "POST",
+      headers: reqHeaders,
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || "Failed to like article");
+    }
+    return await res.json();
+  } catch (error) {
+    console.error("Server Action likeArticle error:", error);
+    return { error: error instanceof Error ? error.message : "Network error" };
+  }
+}
+
+export async function getComments(articleId: string) {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/articles/${articleId}/comments`, {
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Failed to fetch comments");
+    const data = await res.json();
+    return data.comments || [];
+  } catch (error) {
+    console.error("Server Action getComments error:", error);
+    return [];
+  }
+}
+
+export async function postComment(articleId: string, body: string, parentId: string | null = null) {
+  try {
+    const { reqHeaders } = await getAuthHeaders();
+    const res = await fetch(`${BACKEND_URL}/api/articles/${articleId}/comments`, {
+      method: "POST",
+      headers: reqHeaders,
+      body: JSON.stringify({ body, parentId }),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || "Failed to post comment");
+    }
+    return await res.json();
+  } catch (error) {
+    console.error("Server Action postComment error:", error);
+    return { error: error instanceof Error ? error.message : "Network error" };
+  }
+}
+
+export async function aiSummarize(articleId?: string, text?: string, length: "short" | "medium" | "long" = "medium") {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/ai/summarize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ articleId, text, length }),
+    });
+    if (!res.ok) throw new Error("Failed to summarize");
+    return await res.json();
+  } catch (error) {
+    console.error("Server Action aiSummarize error:", error);
+    return null;
+  }
+}
+
+export async function aiSentiment(text: string) {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/ai/sentiment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) throw new Error("Failed to analyze sentiment");
+    return await res.json();
+  } catch (error) {
+    console.error("Server Action aiSentiment error:", error);
+    return null;
+  }
+}
+
+export async function aiRecommendations() {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/ai/recommendations`, {
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Failed to fetch recommendations");
+    const data = await res.json();
+    return data.recommendations || [];
+  } catch (error) {
+    console.error("Server Action aiRecommendations error:", error);
+    return [];
+  }
+}
+
+export async function aiChat(messages: any[], articleId?: string) {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/ai/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages, articleId }),
+    });
+    if (!res.ok) throw new Error("Failed to chat with AI");
+    return await res.json();
+  } catch (error) {
+    console.error("Server Action aiChat error:", error);
+    return null;
+  }
+}
+
