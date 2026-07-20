@@ -373,73 +373,95 @@ export function CommentSection({ articleId }: { articleId: string }) {
         <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">
           Add a Comment
         </h3>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                Name *
-              </label>
-              <input
-                {...register("name", { required: "Name is required" })}
-                placeholder="Your name"
-                className="w-full h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 px-3 text-sm font-medium text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
-              />
-              {errors.name && (
-                <p className="text-xs text-rose-500 font-medium">{errors.name.message}</p>
-              )}
+        {!session?.user ? (
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+              You need to be signed in to leave a comment.
+            </p>
+            <div className="flex items-center gap-3">
+              <a
+                href="/login"
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-xs font-bold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors"
+              >
+                Sign In
+              </a>
+              <a
+                href="/register"
+                className="inline-flex items-center px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors"
+              >
+                Create Account
+              </a>
             </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                  Name *
+                </label>
+                <input
+                  {...register("name", { required: "Name is required" })}
+                  placeholder="Your name"
+                  className="w-full h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 px-3 text-sm font-medium text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
+                />
+                {errors.name && (
+                  <p className="text-xs text-rose-500 font-medium">{errors.name.message}</p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                  Email *
+                </label>
+                <input
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: { value: /^\S+@\S+$/i, message: "Enter a valid email" },
+                  })}
+                  placeholder="your@email.com"
+                  type="email"
+                  className="w-full h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 px-3 text-sm font-medium text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
+                />
+                {errors.email && (
+                  <p className="text-xs text-rose-500 font-medium">{errors.email.message}</p>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                Email *
+                Comment *
               </label>
-              <input
-                {...register("email", {
-                  required: "Email is required",
-                  pattern: { value: /^\S+@\S+$/i, message: "Enter a valid email" },
+              <Textarea
+                {...register("body", {
+                  required: "Comment is required",
+                  minLength: { value: 10, message: "Minimum 10 characters required" },
                 })}
-                placeholder="your@email.com"
-                type="email"
-                className="w-full h-10 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 px-3 text-sm font-medium text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
+                placeholder="Share your thoughts on this article..."
+                rows={4}
+                className="resize-none rounded-lg border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm font-medium text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
               />
-              {errors.email && (
-                <p className="text-xs text-rose-500 font-medium">{errors.email.message}</p>
+              {errors.body && (
+                <p className="text-xs text-rose-500 font-medium">{errors.body.message}</p>
               )}
             </div>
-          </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-              Comment *
-            </label>
-            <Textarea
-              {...register("body", {
-                required: "Comment is required",
-                minLength: { value: 10, message: "Minimum 10 characters required" },
-              })}
-              placeholder="Share your thoughts on this article..."
-              rows={4}
-              className="resize-none rounded-lg border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm font-medium text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50 transition-all"
-            />
-            {errors.body && (
-              <p className="text-xs text-rose-500 font-medium">{errors.body.message}</p>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="font-bold rounded-lg px-6 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-50 dark:hover:bg-zinc-100 dark:text-zinc-900 transition-all cursor-pointer"
-            >
-              {isSubmitting ? "Posting..." : "Post Comment"}
-            </Button>
-            {submitted && (
-              <p className="text-sm font-semibold text-teal-600 dark:text-teal-400 animate-in fade-in slide-in-from-left-2 duration-300">
-                Comment posted!
-              </p>
-            )}
-          </div>
-        </form>
+            <div className="flex items-center gap-3">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="font-bold rounded-lg px-6 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-50 dark:hover:bg-zinc-100 dark:text-zinc-900 transition-all cursor-pointer"
+              >
+                {isSubmitting ? "Posting..." : "Post Comment"}
+              </Button>
+              {submitted && (
+                <p className="text-sm font-semibold text-teal-600 dark:text-teal-400 animate-in fade-in slide-in-from-left-2 duration-300">
+                  Comment posted!
+                </p>
+              )}
+            </div>
+          </form>
+        )}
       </div>
 
       {/* Comments List */}

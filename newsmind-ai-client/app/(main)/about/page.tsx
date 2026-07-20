@@ -2,9 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   FaRegLightbulb,
-  FaGithub,
-  FaLinkedinIn,
-  FaTwitter,
   FaBrain,
   FaRobot,
   FaNewspaper,
@@ -21,36 +18,6 @@ export const metadata = {
   description: "Learn about the mission, team, and technology behind NewsMind AI.",
 };
 
-const TEAM = [
-  {
-    name: "Dr. Priya Kapoor",
-    role: "CEO & AI Researcher",
-    bio: "Former Google Brain engineer. Leads AI strategy and product vision.",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop",
-    twitter: "#", linkedin: "#",
-  },
-  {
-    name: "Marcus Elliot",
-    role: "CTO",
-    bio: "Full-stack architect. Previously built real-time news systems at Reuters.",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop",
-    twitter: "#", linkedin: "#",
-  },
-  {
-    name: "Amara Nwosu",
-    role: "Head of Data Science",
-    bio: "NLP specialist with a focus on multilingual sentiment analysis.",
-    avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=200&h=200&fit=crop",
-    twitter: "#", linkedin: "#",
-  },
-  {
-    name: "James Okafor",
-    role: "Lead Engineer",
-    bio: "Infrastructure and scalability expert. Open-source contributor.",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop",
-    github: "#", linkedin: "#",
-  },
-];
 
 const VALUES = [
   { icon: <FaBrain className="size-6 text-teal-500" />, title: "AI-First Thinking", desc: "Every feature is designed around AI augmentation, not automation for its own sake." },
@@ -110,7 +77,7 @@ export default function AboutPage() {
             <div className="flex items-center justify-center gap-4 pt-2">
               <div className="flex items-center gap-2 text-zinc-300 text-sm font-semibold">
                 <FaRobot className="size-4 text-teal-400" />
-                Founded in 2025
+                Founded in 2026
               </div>
               <span className="text-zinc-600">·</span>
               <div className="flex items-center gap-2 text-zinc-300 text-sm font-semibold">
@@ -181,46 +148,6 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Team */}
-        <section className="py-20 px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl space-y-12">
-            <div className="text-center space-y-3">
-              <h2 className="text-3xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight">Meet the Team</h2>
-              <p className="text-zinc-500 dark:text-zinc-400 font-medium">
-                Builders, researchers, and journalists on a shared mission.
-              </p>
-            </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {TEAM.map((member) => (
-                <div key={member.name} className="text-center space-y-4 group">
-                  <div className="relative mx-auto size-24 rounded-full overflow-hidden ring-4 ring-zinc-100 dark:ring-zinc-800 group-hover:ring-teal-500/30 transition-all shadow-md">
-                    <Image src={member.avatar} alt={member.name} fill className="object-cover" sizes="96px" />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="font-extrabold text-zinc-900 dark:text-zinc-50">{member.name}</h3>
-                    <p className="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider">{member.role}</p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">{member.bio}</p>
-                  </div>
-                  <div className="flex items-center justify-center gap-3">
-                    {"twitter" in member && (
-                      <Link href={member.twitter as string} className="text-zinc-400 hover:text-sky-500 transition-colors">
-                        <FaTwitter className="size-4" />
-                      </Link>
-                    )}
-                    {"github" in member && (
-                      <Link href={member.github as string} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors">
-                        <FaGithub className="size-4" />
-                      </Link>
-                    )}
-                    <Link href={member.linkedin} className="text-zinc-400 hover:text-sky-600 transition-colors">
-                      <FaLinkedinIn className="size-4" />
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
 
         {/* Tech Stack */}
         <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-950/50">

@@ -3,63 +3,57 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation"; // dynamic ID নেওয়ার জন্য
-import { 
-  FaChevronRight, FaRegClock, FaRegCalendar, FaRegEye, FaRegCommentDots, FaShareNodes, 
-  FaTwitter, FaFacebookF, FaLinkedinIn, FaLink, FaRobot, FaCircleCheck,
-  FaArrowLeft, FaArrowRight, FaBrain, FaHeart
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "@/lib/auth-client";
+import {
+  FaRegClock,
+  FaRegCalendar,
+  FaRegEye,
+  FaRobot,
+  FaBrain,
+  FaHeart,
+  FaLink,
 } from "react-icons/fa6";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { ArticleSidebar } from "@/components/shared/ArticleSidebar";
 import { CommentSection } from "@/components/shared/CommentSection";
-import { ArticleCard, type Article } from "@/components/shared/ArticleCard";
-import { getArticleById, likeArticle, aiSummarize, aiSentiment, aiRecommendations } from "@/lib/server"; // আপনার সার্ভার অ্যাকশন
+import {
+  getArticleById,
+  likeArticle,
+  aiSummarize,
+  aiSentiment,
+  aiRecommendations,
+} from "@/lib/server";
 
-// sidebar এর ডেটা স্ট্রাকচার ঠিক রাখার জন্য static fallback
 const SIDEBAR_TOP_POSTS = [
   {
     id: "p1",
     title: "The Wearable Revolution: How Biometric Sensors Changed Pro Training",
-    imageUrl: "https://images.unsplash.com/photo-1576678927484-cc907957088c?w=200&h=200&fit=crop",
+    imageUrl:
+      "https://images.unsplash.com/photo-1576678927484-cc907957088c?w=200&h=200&fit=crop",
     category: "Health",
     readTime: "5 min",
   },
   {
     id: "p2",
     title: "Data Brokers in the Locker Room: Privacy in Modern Sport",
-    imageUrl: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=200&h=200&fit=crop",
+    imageUrl:
+      "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=200&h=200&fit=crop",
     category: "Tech",
     readTime: "6 min",
   },
 ];
 
-const RELATED_ARTICLES: Article[] = [
-  {
-    id: "ra1",
-    title: "Machine Vision in Basketball: Reading the Court Before the Play Happens",
-    excerpt: "A look at how NBA teams use computer vision to pre-read offensive sets in real time.",
-    category: "Basketball",
-    imageUrl: "https://images.unsplash.com/photo-1546519638405-a9f6a2ed95b3?w=600&h=400&fit=crop",
-    author: { name: "Aisha Patel", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&h=60&fit=crop" },
-    publishedAt: "Jul 16, 2026",
-    readTime: "6 min",
-    sentiment: "positive",
-    sentimentScore: 0.91,
-    tags: ["Basketball", "ComputerVision", "NBA"],
-  }
-];
-
-function AiInsightPanel({ 
-  onClose, 
-  articleId, 
-  content 
-}: { 
-  onClose: () => void; 
-  articleId: string; 
-  content: string 
+function AiInsightPanel({
+  onClose,
+  articleId,
+  content,
+}: {
+  onClose: () => void;
+  articleId: string;
+  content: string;
 }) {
   const [phase, setPhase] = React.useState<"idle" | "loading" | "done">("idle");
   const [dots, setDots] = React.useState("");
@@ -69,7 +63,10 @@ function AiInsightPanel({
   React.useEffect(() => {
     let timer: ReturnType<typeof setInterval>;
     if (phase === "loading") {
-      timer = setInterval(() => setDots((d) => (d.length >= 3 ? "" : d + ".")), 400);
+      timer = setInterval(
+        () => setDots((d) => (d.length >= 3 ? "" : d + ".")),
+        400
+      );
     }
     return () => clearInterval(timer);
   }, [phase]);
@@ -105,15 +102,23 @@ function AiInsightPanel({
             NewsMind AI Analysis
           </h3>
         </div>
-        <button onClick={onClose} className="text-xs font-bold text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors">
+        <button
+          onClick={onClose}
+          className="text-xs font-bold text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+        >
           ✕ Close
         </button>
       </div>
 
       {phase === "idle" && (
         <div className="text-center py-4 space-y-3">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium"> Run a deep AI analysis on this article. </p>
-          <Button onClick={handleAnalyze} className="bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg px-6 cursor-pointer">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">
+            Run a deep AI analysis on this article.
+          </p>
+          <Button
+            onClick={handleAnalyze}
+            className="bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg px-6 cursor-pointer"
+          >
             <FaRobot className="mr-2 size-4" /> Analyze Now
           </Button>
         </div>
@@ -122,7 +127,9 @@ function AiInsightPanel({
       {phase === "loading" && (
         <div className="text-center py-6 space-y-2">
           <FaRobot className="size-8 text-teal-500 mx-auto animate-bounce" />
-          <p className="text-sm font-bold text-teal-700 dark:text-teal-400"> Analyzing article{dots}</p>
+          <p className="text-sm font-bold text-teal-700 dark:text-teal-400">
+            Analyzing article{dots}
+          </p>
         </div>
       )}
 
@@ -130,13 +137,22 @@ function AiInsightPanel({
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-lg bg-white/80 dark:bg-zinc-900/60 border border-zinc-100 dark:border-zinc-800 px-3 py-2">
-              <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">Sentiment</span>
-              <span className={`text-xs font-extrabold capitalize ${getSentimentColor(sentimentData?.sentiment || "neutral")}`}>
-                {sentimentData?.sentiment || "neutral"} ({Math.round((sentimentData?.score || 0.5) * 100)}%)
+              <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
+                Sentiment
+              </span>
+              <span
+                className={`text-xs font-extrabold capitalize ${getSentimentColor(
+                  sentimentData?.sentiment || "neutral"
+                )}`}
+              >
+                {sentimentData?.sentiment || "neutral"} (
+                {Math.round((sentimentData?.score || 0.5) * 100)}%)
               </span>
             </div>
             <div className="rounded-lg bg-white/80 dark:bg-zinc-900/60 border border-zinc-100 dark:border-zinc-800 px-3 py-2">
-              <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">AI Confidence</span>
+              <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block">
+                AI Confidence
+              </span>
               <span className="text-xs font-extrabold text-teal-600 dark:text-teal-400">
                 {Math.round((sentimentData?.confidence || 0.9) * 100)}%
               </span>
@@ -145,7 +161,9 @@ function AiInsightPanel({
 
           {summaryData?.tldr && (
             <div className="rounded-lg bg-white/80 dark:bg-zinc-900/60 border border-zinc-100 dark:border-zinc-800 p-3 space-y-1">
-              <span className="text-[10px] font-bold text-teal-700 dark:text-teal-400 uppercase tracking-wider block">TL;DR Summary</span>
+              <span className="text-[10px] font-bold text-teal-700 dark:text-teal-400 uppercase tracking-wider block">
+                TL;DR Summary
+              </span>
               <p className="text-xs text-zinc-700 dark:text-zinc-300 font-medium leading-relaxed">
                 {summaryData.tldr}
               </p>
@@ -154,10 +172,15 @@ function AiInsightPanel({
 
           {summaryData?.bulletPoints && summaryData.bulletPoints.length > 0 && (
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-teal-700 dark:text-teal-400 uppercase tracking-wider block">Key Points</span>
+              <span className="text-[10px] font-bold text-teal-700 dark:text-teal-400 uppercase tracking-wider block">
+                Key Points
+              </span>
               <ul className="space-y-1.5 pl-1.5">
                 {summaryData.bulletPoints.map((bp: string, idx: number) => (
-                  <li key={idx} className="flex items-start gap-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                  <li
+                    key={idx}
+                    className="flex items-start gap-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 leading-relaxed"
+                  >
                     <span className="text-teal-500 mt-0.5">•</span>
                     <span>{bp}</span>
                   </li>
@@ -168,10 +191,15 @@ function AiInsightPanel({
 
           {summaryData?.takeaways && summaryData.takeaways.length > 0 && (
             <div className="space-y-1 pt-1">
-              <span className="text-[10px] font-bold text-teal-700 dark:text-teal-400 uppercase tracking-wider block">AI Takeaways</span>
+              <span className="text-[10px] font-bold text-teal-700 dark:text-teal-400 uppercase tracking-wider block">
+                AI Takeaways
+              </span>
               <ul className="space-y-1 pl-1.5">
                 {summaryData.takeaways.map((tw: string, idx: number) => (
-                  <li key={idx} className="flex items-start gap-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                  <li
+                    key={idx}
+                    className="flex items-start gap-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400 leading-relaxed"
+                  >
                     <span className="text-teal-400 mt-0.5">✓</span>
                     <span>{tw}</span>
                   </li>
@@ -187,11 +215,15 @@ function AiInsightPanel({
 
 function ShareBar() {
   const handleCopy = () => {
-    if (typeof window !== "undefined") navigator.clipboard.writeText(window.location.href);
+    if (typeof window !== "undefined")
+      navigator.clipboard.writeText(window.location.href);
   };
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <button onClick={handleCopy} className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 px-2.5 py-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 transition-all">
+      <button
+        onClick={handleCopy}
+        className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 px-2.5 py-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 transition-all cursor-pointer"
+      >
         <FaLink className="size-3.5" /> <span>Copy link</span>
       </button>
     </div>
@@ -201,11 +233,16 @@ function ShareBar() {
 export default function ArticleDetailPage() {
   const params = useParams();
   const id = params?.id as string;
+  const router = useRouter();
+  const { data: session } = useSession();
+  const isLoggedIn = !!session?.user;
 
   const [article, setArticle] = React.useState<any>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [showAiPanel, setShowAiPanel] = React.useState(false);
-  const [recommendationsList, setRecommendationsList] = React.useState<any[]>([]);
+  const [recommendationsList, setRecommendationsList] = React.useState<any[]>(
+    []
+  );
 
   React.useEffect(() => {
     if (!id) return;
@@ -213,7 +250,6 @@ export default function ArticleDetailPage() {
     getArticleById(id)
       .then((data) => {
         if (data) {
-          // ডেটাবেজ স্কিমা অনুযায়ী ফিল্ড ম্যাপ করে নেওয়া হলো
           setArticle({
             id: data.id || data._id,
             title: data.title,
@@ -221,16 +257,26 @@ export default function ArticleDetailPage() {
             content: data.content,
             category: data.category || "General",
             subcategory: data.subcategory || "News",
-            imageUrl: data.imageUrl || "https://images.unsplash.com/photo-1551958219-acbc595e6d88?w=1400",
-            publishedAt: data.publishedAt || new Date().toLocaleDateString(),
+            imageUrl:
+              data.imageUrl ||
+              "https://images.unsplash.com/photo-1551958219-acbc595e6d88?w=1400",
+            publishedAt:
+              data.publishedAt || new Date().toLocaleDateString(),
             readTime: data.readTime || "5 min",
             views: data.views || 0,
             commentCount: data.commentCount || 0,
             likes: data.likes || 0,
             sentiment: data.sentiment || "neutral",
             sentimentScore: data.sentimentScore || 0.5,
-            author: data.author || { name: "NewsMind Agent", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100", bio: "Staff writer", role: "Author", followers: 100 },
-            tags: data.tags || []
+            author: data.author || {
+              name: "NewsMind Agent",
+              avatar:
+                "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100",
+              bio: "Staff writer",
+              role: "Author",
+              followers: 100,
+            },
+            tags: data.tags || [],
           });
         }
       })
@@ -243,7 +289,9 @@ export default function ArticleDetailPage() {
           const mapped = data.slice(0, 3).map((a: any) => ({
             id: a.id || a._id,
             title: a.title,
-            imageUrl: a.imageUrl || "https://images.unsplash.com/photo-1551958219-acbc595e6d88?w=1400",
+            imageUrl:
+              a.imageUrl ||
+              "https://images.unsplash.com/photo-1551958219-acbc595e6d88?w=1400",
             category: a.category || "General",
             readTime: a.readTime || "5 min",
           }));
@@ -254,11 +302,14 @@ export default function ArticleDetailPage() {
   }, [id]);
 
   const handleLikeClick = async () => {
+    if (!isLoggedIn) { router.push("/login"); return; }
     if (!article?.id) return;
-    setArticle((prev: any) => prev ? { ...prev, likes: (prev.likes || 0) + 1 } : null);
+    setArticle((prev: any) =>
+      prev ? { ...prev, likes: (prev.likes || 0) + 1 } : null
+    );
     const res = await likeArticle(article.id);
     if (res && res.likes !== undefined) {
-      setArticle((prev: any) => prev ? { ...prev, likes: res.likes } : null);
+      setArticle((prev: any) => (prev ? { ...prev, likes: res.likes } : null));
     }
   };
 
@@ -267,7 +318,9 @@ export default function ArticleDetailPage() {
       <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950">
         <div className="animate-pulse flex flex-col items-center gap-2">
           <FaRobot className="size-8 text-teal-500 animate-bounce" />
-          <span className="text-sm font-bold text-zinc-500">Loading Article Details...</span>
+          <span className="text-sm font-bold text-zinc-500">
+            Loading Article Details...
+          </span>
         </div>
       </div>
     );
@@ -281,7 +334,6 @@ export default function ArticleDetailPage() {
     );
   }
 
-  // Sidebar এবং internals কনফিগারেশন
   const sidebarAuthor = {
     name: article.author.name,
     avatar: article.author.avatar,
@@ -319,20 +371,35 @@ export default function ArticleDetailPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-zinc-200 dark:border-zinc-800">
                 <div className="flex items-center gap-3">
                   <div className="relative size-10 rounded-full overflow-hidden shrink-0">
-                    <Image src={article.author.avatar} alt={article.author.name} fill className="object-cover" />
+                    <Image
+                      src={article.author.avatar}
+                      alt={article.author.name}
+                      fill
+                      className="object-cover"
+                    />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50">{article.author.name}</p>
-                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">{article.author.role}</p>
+                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50">
+                      {article.author.name}
+                    </p>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
+                      {article.author.role}
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                  <span className="flex items-center gap-1.5"><FaRegCalendar /> {article.publishedAt}</span>
+                  <span className="flex items-center gap-1.5">
+                    <FaRegCalendar /> {article.publishedAt}
+                  </span>
                   <span className="w-px h-4 bg-zinc-200 dark:bg-zinc-700" />
-                  <span className="flex items-center gap-1.5"><FaRegClock /> {article.readTime}</span>
+                  <span className="flex items-center gap-1.5">
+                    <FaRegClock /> {article.readTime}
+                  </span>
                   <span className="w-px h-4 bg-zinc-200 dark:bg-zinc-700" />
-                  <span className="flex items-center gap-1.5"><FaRegEye /> {article.views} views</span>
+                  <span className="flex items-center gap-1.5">
+                    <FaRegEye /> {article.views} views
+                  </span>
                 </div>
               </div>
 
@@ -344,19 +411,27 @@ export default function ArticleDetailPage() {
                     className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 px-2.5 py-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 hover:text-rose-500 hover:border-rose-200 transition-all cursor-pointer"
                   >
                     <FaHeart className="size-3.5 text-rose-500" />
-                    <span>{(article.likes || 0).toLocaleString()} Likes</span>
+                    <span>
+                      {(article.likes || 0).toLocaleString()} Likes
+                    </span>
                   </button>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => setShowAiPanel((p) => !p)} className="rounded-lg cursor-pointer">
-                  <FaRobot className="size-3.5 mr-1" /> {showAiPanel ? "Close AI Panel" : "Run AI Analysis"}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAiPanel((p) => !p)}
+                  className="rounded-lg cursor-pointer"
+                >
+                  <FaRobot className="size-3.5 mr-1" />{" "}
+                  {showAiPanel ? "Close AI Panel" : "Run AI Analysis"}
                 </Button>
               </div>
 
               {showAiPanel && (
-                <AiInsightPanel 
-                  onClose={() => setShowAiPanel(false)} 
-                  articleId={article.id} 
-                  content={article.content} 
+                <AiInsightPanel
+                  onClose={() => setShowAiPanel(false)}
+                  articleId={article.id}
+                  content={article.content}
                 />
               )}
 
@@ -364,12 +439,14 @@ export default function ArticleDetailPage() {
                 {article.excerpt}
               </p>
 
-              {/* Dynamic Content Handler (String বা Paragraph parsing) */}
+              {/* Dynamic Content Handler */}
               <div className="text-base text-zinc-700 dark:text-zinc-300 leading-8 space-y-5">
                 {typeof article.content === "string" ? (
-                  article.content.split("\n\n").map((para: string, idx: number) => (
-                    <p key={idx}>{para}</p>
-                  ))
+                  article.content
+                    .split("\n\n")
+                    .map((para: string, idx: number) => (
+                      <p key={idx}>{para}</p>
+                    ))
                 ) : (
                   <p>{article.content}</p>
                 )}
@@ -378,7 +455,11 @@ export default function ArticleDetailPage() {
               {/* Dynamic Tags */}
               <div className="flex flex-wrap gap-2 pt-2 border-t border-zinc-200 dark:border-zinc-800">
                 {article.tags.map((tag: string) => (
-                  <Link key={tag} href={`/explore?tag=${encodeURIComponent(tag)}`} className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800 px-3 py-1 text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                  <Link
+                    key={tag}
+                    href={`/explore?tag=${encodeURIComponent(tag)}`}
+                    className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800 px-3 py-1 text-xs font-semibold text-zinc-600 dark:text-zinc-300"
+                  >
                     #{tag}
                   </Link>
                 ))}
@@ -393,9 +474,15 @@ export default function ArticleDetailPage() {
             <aside className="hidden lg:block">
               <div className="sticky top-24 space-y-8">
                 <ArticleSidebar
+                  articleId={article.id}
                   author={sidebarAuthor}
                   tags={article.tags}
-                  topPosts={recommendationsList.length > 0 ? recommendationsList : SIDEBAR_TOP_POSTS}
+                  topPosts={
+                    recommendationsList.length > 0
+                      ? recommendationsList
+                      : SIDEBAR_TOP_POSTS
+                  }
+                  likesCount={article.likes}
                   onTriggerAi={() => {
                     setShowAiPanel(true);
                     window.scrollTo({ top: 0, behavior: "smooth" });

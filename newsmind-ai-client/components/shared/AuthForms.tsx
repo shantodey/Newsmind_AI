@@ -8,6 +8,7 @@ import { FaRegLightbulb, FaGoogle, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser
 import { Button } from "@/components/ui/button";
 import { signIn, signUp } from "@/lib/auth-client";
 import { syncExpressAuth } from "@/lib/server";
+import { uploadToImageBB } from "@/lib/imagebb";
 
 type LoginValues = { email: string; password: string };
 type RegisterValues = { name: string; email: string; password: string; confirm: string };
@@ -192,16 +193,31 @@ function RegisterForm() {
   const [showPass, setShowPass] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [serverError, setServerError] = React.useState("");
+  const [avatarFile, setAvatarFile] = React.useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = React.useState<string>("");
   const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterValues>();
   const password = watch("password");
 
   const onSubmit = async (data: RegisterValues) => {
     setLoading(true);
     setServerError("");
+    let avatarUrl = "";
+    if (avatarFile) {
+      try {
+        avatarUrl = await uploadToImageBB(avatarFile);
+      } catch (err: any) {
+        console.error("Avatar upload failed:", err);
+        setServerError(err.message || "Failed to upload profile picture.");
+        setLoading(false);
+        return;
+      }
+    }
+
     const { error } = await signUp.email({
       name: data.name,
       email: data.email,
       password: data.password,
+      image: avatarUrl,
       callbackURL: "/dashboard",
     });
     if (error) {
@@ -209,7 +225,7 @@ function RegisterForm() {
       setLoading(false);
     } else {
       try {
-        const result = await syncExpressAuth("register", data.name, data.email, data.password);
+        const result = await syncExpressAuth("register", data.name, data.email, data.password, avatarUrl);
         if (result) {
           localStorage.setItem("newsmind_token", result.token);
           localStorage.setItem("newsmind_user", JSON.stringify(result.user));
@@ -236,6 +252,33 @@ function RegisterForm() {
         error={errors.name?.message}
         {...register("name", { required: "Name is required", minLength: { value: 2, message: "At least 2 characters" } })}
       />
+
+      {/* Profile picture upload */}
+      <div className="flex flex-col gap-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/30 p-3">
+        <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400">Profile Picture (Optional)</label>
+        <div className="flex items-center gap-4">
+          <div className="size-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden border border-zinc-200 dark:border-zinc-700 shrink-0">
+            {avatarPreview ? (
+              <img src={avatarPreview} alt="Preview" className="size-full object-cover" />
+            ) : (
+              <FaUser className="size-5 text-zinc-400" />
+            )}
+          </div>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                setAvatarFile(file);
+                setAvatarPreview(URL.createObjectURL(file));
+              }
+            }}
+            className="text-xs font-semibold file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 dark:file:bg-teal-950/30 dark:file:text-teal-400 text-zinc-500 cursor-pointer"
+          />
+        </div>
+      </div>
+
       <FormInput icon={<FaEnvelope className="size-4" />} type="email" placeholder="your@email.com"
         error={errors.email?.message}
         {...register("email", { required: "Email is required", pattern: { value: /^\S+@\S+$/i, message: "Invalid email" } })}

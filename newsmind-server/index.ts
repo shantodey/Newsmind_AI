@@ -50,15 +50,75 @@ function getAuthToken(req: Request) {
   return authHeader.replace("Bearer ", "").trim();
 }
 
-function getAuthUser(req: Request) {
-  const token = getAuthToken(req);
-  if (!token) return null;
+type AuthUser = {
+  userId: string;
+  role: string;
+  email?: string;
+  name?: string;
+};
 
-  try {
-    return jwt.verify(token, getJwtSecret()) as { userId: string; role: string };
-  } catch {
-    return null;
+function getAuthUser(req: Request): AuthUser | null {
+  const token = getAuthToken(req);
+  if (token) {
+    try {
+      return jwt.verify(token, getJwtSecret()) as AuthUser;
+    } catch {
+      return null;
+    }
   }
+
+  const userIdHeader = req.headers["x-user-id"];
+  const roleHeader = req.headers["x-user-role"];
+  const emailHeader = req.headers["x-user-email"];
+  const nameHeader = req.headers["x-user-name"];
+
+  if (typeof userIdHeader === "string" && userIdHeader.trim()) {
+    return {
+      userId: userIdHeader,
+      role: typeof roleHeader === "string" && roleHeader.trim() ? roleHeader : "user",
+      email: typeof emailHeader === "string" && emailHeader.trim() ? emailHeader : undefined,
+      name: typeof nameHeader === "string" && nameHeader.trim() ? nameHeader : undefined,
+    };
+  }
+
+  return null;
+}
+
+function buildUserFilter(userId: string, email?: string) {
+  const filter: any = { $or: [{ _id: userId }] };
+  if (ObjectId.isValid(userId)) {
+    filter.$or.push({ _id: new ObjectId(userId) });
+  }
+  if (email) {
+    filter.$or.push({ email: String(email).toLowerCase() });
+  }
+  return filter;
+}
+
+async function getOrCreateUser(userId: string, email?: string, name?: string) {
+  if (!userId) return null;
+
+  const filter = buildUserFilter(userId, email);
+  let user = await users.findOne(filter);
+
+  if (user) {
+    return user;
+  }
+
+  await users.insertOne({
+    _id: new ObjectId(userId),
+    name: name || email || "User",
+    email: email ? String(email).toLowerCase() : "",
+    role: "user",
+    avatar: "",
+    bio: "",
+    bookmarks: [],
+    likedPosts: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  return users.findOne(filter);
 }
 
 function normalizeArticle(article: any) {
@@ -92,7 +152,6 @@ export async function disconnectFromMongoDB() {
 // 6) Basic routes
 // ------------------------------
 app.get("/health", (_req: Request, res: Response) => {
-  // This route checks if the server is alive.
   res.json({ status: "ok", message: "NewsMind AI API is running" });
 });
 
@@ -101,7 +160,7 @@ app.get("/health", (_req: Request, res: Response) => {
 // ------------------------------
 app.post("/api/auth/register", async (req: Request, res: Response) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, avatar } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ error: "Name, email, and password are required" });
@@ -120,7 +179,7 @@ app.post("/api/auth/register", async (req: Request, res: Response) => {
       email: String(email).toLowerCase(),
       passwordHash,
       role,
-      avatar: "",
+      avatar: avatar || "",
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -207,9 +266,9 @@ app.get("/api/auth/me", async (req: Request, res: Response) => {
   }
 });
 
-// ------------------------------
+
 // 8) Article routes
-// ------------------------------
+
 app.get("/api/articles/stats", async (_req: Request, res: Response) => {
   try {
     const [totalArticles, totalPublished, totalDraft, totalViews, totalLikes] = await Promise.all([
@@ -233,9 +292,6 @@ app.get("/api/articles/stats", async (_req: Request, res: Response) => {
   }
 });
 
-
-
-// for getting articles data form database
 app.get("/api/articles", async (req: Request, res: Response) => {
   try {
     const q = String(req.query.q || "");
@@ -290,62 +346,137 @@ app.get("/api/articles", async (req: Request, res: Response) => {
   }
 });
 
+app.post("/api/articles", async (req: Request, res: Response) => {
+  try {
+    const { title, excerpt, content, category, tags, imageUrl, status } = req.body;
 
-// for adding new articles data to database 
-  app.post("/api/articles", async (req: Request, res: Response) => {
-    try {
-      const { title, excerpt, content, category, tags, imageUrl, status } = req.body;
-
-      if (!title || !excerpt || !content || !category) {
-        return res.status(400).json({ error: "Title, excerpt, content, and category are required" });
-      }
-
-      const wordCount = String(content).trim().split(/\s+/).filter(Boolean).length;
-      const readTime = `${Math.max(1, Math.ceil(wordCount / 200))} min`;
-      const normalizedStatus = String(status || "published").toLowerCase() === "draft" ? "draft" : "published";
-
-      const result = await articles.insertOne({
-        title,
-        excerpt,
-        content,
-        category,
-        tags: tags || [],
-        imageUrl: imageUrl || "",
-        author: req.headers["x-user-id"] || "system",
-        status: normalizedStatus,
-        views: 0,
-        likes: 0,
-        sentiment: "neutral",
-        sentimentScore: 0.5,
-        readTime,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-
-      const inserted = await articles.findOne({ _id: result.insertedId });
-      res.status(201).json({ article: normalizeArticle(inserted) });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Failed to create article" });
+    if (!title || !excerpt || !content || !category) {
+      return res.status(400).json({ error: "Title, excerpt, content, and category are required" });
     }
-  });
 
-// for getting singile articles data 
-  app.get("/api/articles/:id", async (req: Request, res: Response) => {
-    try {
-      const article = await articles.findOne({ _id: new ObjectId(req.params.id) });
-      if (!article) {
-        return res.status(404).json({ error: "Article not found" });
-      }
+    const wordCount = String(content).trim().split(/\s+/).filter(Boolean).length;
+    const readTime = `${Math.max(1, Math.ceil(wordCount / 200))} min`;
+    const normalizedStatus = String(status || "published").toLowerCase() === "draft" ? "draft" : "published";
 
-      await articles.updateOne({ _id: article._id }, { $inc: { views: 1 } });
-      res.json({ article: normalizeArticle(article) });
+    const result = await articles.insertOne({
+      title,
+      excerpt,
+      content,
+      category,
+      tags: tags || [],
+      imageUrl: imageUrl || "",
+      author: req.headers["x-user-id"] || "system",
+      status: normalizedStatus,
+      views: 0,
+      likes: 0,
+      sentiment: "neutral",
+      sentimentScore: 0.5,
+      readTime,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const inserted = await articles.findOne({ _id: result.insertedId });
+    res.status(201).json({ article: normalizeArticle(inserted) });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to create article" });
+  }
+});
+
+app.get("/api/articles/:id", async (req: Request, res: Response) => {
+  try {
+    const article = await articles.findOne({ _id: new ObjectId(req.params.id) });
+    if (!article) {
+      return res.status(404).json({ error: "Article not found" });
     }
-    catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Failed to fetch article" });
+
+    await articles.updateOne({ _id: article._id }, { $inc: { views: 1 } });
+    res.json({ article: normalizeArticle(article) });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch article" });
+  }
+});
+
+app.patch("/api/users/profile", async (req: Request, res: Response) => {
+  try {
+    const authUser = getAuthUser(req);
+    if (!authUser?.userId) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
-  });
+
+    const { name, bio, avatar } = req.body;
+    const existingUser = await getOrCreateUser(authUser.userId, authUser.email, authUser.name);
+
+    const updatedUser = await users.findOneAndUpdate(
+      { _id: existingUser?._id },
+      { $set: { name, bio, avatar, updatedAt: new Date() } },
+      { returnDocument: "after" }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({
+      user: {
+        id: updatedUser._id.toString(),
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        avatar: updatedUser.avatar,
+        bio: updatedUser.bio,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
+app.get("/api/users/bookmarks", async (req: Request, res: Response) => {
+  try {
+    const authUser = getAuthUser(req);
+    if (!authUser?.userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user = await getOrCreateUser(authUser.userId, authUser.email, authUser.name);
+    const bookmarkIds = Array.isArray(user?.bookmarks) ? user.bookmarks : [];
+    const validIds = bookmarkIds.filter((id: string) => ObjectId.isValid(id));
+
+    if (!validIds.length) {
+      return res.json({ bookmarks: [] });
+    }
+
+    const bookmarkedArticles = await articles
+      .find({ _id: { $in: validIds.map((id: string) => new ObjectId(id)) } })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.json({ bookmarks: bookmarkedArticles.map(normalizeArticle) });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch bookmarks" });
+  }
+});
+
+app.get("/api/articles/:id/bookmark", async (req: Request, res: Response) => {
+  try {
+    const authUser = getAuthUser(req);
+    if (!authUser?.userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user = await getOrCreateUser(authUser.userId, authUser.email, authUser.name);
+    const isBookmarked = Array.isArray(user?.bookmarks) && user.bookmarks.includes(req.params.id);
+
+    res.json({ bookmarked: isBookmarked });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch bookmark state" });
+  }
+});
 
 app.patch("/api/articles/:id", async (req: Request, res: Response) => {
   try {
@@ -377,33 +508,87 @@ app.delete("/api/articles/:id", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/articles/:id/like", async (req: Request, res: Response) => {
+
+
+// Like status check
+app.get("/api/articles/:id/like-status", async (req: Request, res: Response) => {
   try {
-    const article = await articles.findOne({ _id: new ObjectId(req.params.id) });
-    if (!article) {
-      return res.status(404).json({ error: "Article not found" });
-    }
-
-    const updated = await articles.findOneAndUpdate(
-      { _id: article._id },
-      { $inc: { likes: 1 } },
-      { returnDocument: "after" }
-    );
-
-    await analytics.insertOne({
-      user: req.headers["x-user-id"] || "anonymous",
-      article: req.params.id,
-      event: "like",
-      createdAt: new Date(),
-    });
-
-    res.json({ likes: updated?.likes || 0 });
+    const authUser = getAuthUser(req);
+    if (!authUser?.userId) return res.json({ liked: false });
+    const user = await getOrCreateUser(authUser.userId, authUser.email, authUser.name);
+    const likedPosts: string[] = (user?.likedPosts || []).map((id: any) => id.toString());
+    const liked = likedPosts.includes(req.params.id.toString());
+    res.json({ liked });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to like article" });
+    res.json({ liked: false });
   }
 });
 
+//api for getting like 
+app.post("/api/articles/:id/like", async (req: Request, res: Response) => {
+  try {
+    const authUser = getAuthUser(req);
+    if (!authUser?.userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const articleId = req.params.id;
+    const userId = authUser.userId;
+
+    const user = await getOrCreateUser(userId, authUser.email, authUser.name);
+
+    // String conversion নিশ্চিত করা যাতে ObjectId & String টাইপ ইস্যু না হয়
+    const likedPosts: string[] = (user?.likedPosts || []).map((id: any) => id.toString());
+    const hasLiked = likedPosts.includes(articleId.toString());
+
+    if (hasLiked) {
+      // Unlike Operation
+      await users.updateOne(
+        { _id: new ObjectId(userId) },
+        { $pull: { likedPosts: articleId } } as any
+      );
+
+      const updatedArticle = await articles.findOneAndUpdate(
+        { _id: new ObjectId(articleId) },
+        { $inc: { likes: -1 } },
+        { returnDocument: "after" }
+      );
+
+      return res.json({ liked: false, likes: updatedArticle?.likes || 0 });
+    } else {
+      // Like Operation (Atomic check সহ যাতে একই সাথে ২ বার রিকোয়েস্ট আসলেও ১ বারই লাইক হয়)
+      const userUpdateResult = await users.updateOne(
+        { _id: new ObjectId(userId), likedPosts: { $ne: articleId } },
+        { $addToSet: { likedPosts: articleId } }
+      );
+
+      // শুধুমাত্র যদি ইউজারের অ্যারিতে আইডি যুক্ত হয়, তখনই আর্টিকেলের লাইক কাউন্ট বাড়ানো হবে
+      if (userUpdateResult.modifiedCount > 0) {
+        const updatedArticle = await articles.findOneAndUpdate(
+          { _id: new ObjectId(articleId) },
+          { $inc: { likes: 1 } },
+          { returnDocument: "after" }
+        );
+
+        await analytics.insertOne({
+          user: userId,
+          article: articleId,
+          event: "like",
+          createdAt: new Date(),
+        });
+
+        return res.json({ liked: true, likes: updatedArticle?.likes || 0 });
+      }
+
+      // যদি আগের থেকে লাইক করা থাকে কিন্তু race condition ঘটে থাকে
+      const currentArticle = await articles.findOne({ _id: new ObjectId(articleId) });
+      return res.json({ liked: true, likes: currentArticle?.likes || 0 });
+    }
+  } catch (error) {
+    console.error("Like Toggle Error:", error);
+    res.status(500).json({ error: "Failed to toggle like" });
+  }
+});
 app.get("/api/articles/:id/comments", async (req: Request, res: Response) => {
   try {
     const data = await comments.find({ article: req.params.id }).sort({ createdAt: -1 }).toArray();
@@ -470,6 +655,37 @@ app.post("/api/ai/summarize", async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to summarize" });
+  }
+});
+
+app.post("/api/articles/:id/bookmark", async (req: Request, res: Response) => {
+  try {
+    const authUser = getAuthUser(req);
+    if (!authUser?.userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const articleId = req.params.id;
+    const userId = authUser.userId;
+
+    const user = await getOrCreateUser(userId, authUser.email, authUser.name);
+    const isBookmarked = user?.bookmarks?.includes(articleId);
+
+    if (isBookmarked) {
+      await users.updateOne(
+        { _id: new ObjectId(userId) },
+        { $pull: { bookmarks: articleId } } as any
+      );
+      return res.json({ bookmarked: false });
+    } else {
+      await users.updateOne(
+        { _id: new ObjectId(userId) },
+        { $addToSet: { bookmarks: articleId } }
+      );
+      return res.json({ bookmarked: true });
+    }
+  } catch (error) {
+    res.status(500).json({ error: "Failed to toggle bookmark" });
   }
 });
 
@@ -575,5 +791,3 @@ connectToMongoDB()
   });
 
 export default app;
-
-

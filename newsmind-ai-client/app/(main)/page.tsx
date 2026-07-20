@@ -12,61 +12,18 @@ import { CategoryPill } from "@/components/shared/CategoryPill";
 import { ArticleCard, Article } from "@/components/shared/ArticleCard";
 import { WeatherWidget } from "@/components/shared/WeatherWidget";
 import { SportsWidget } from "@/components/shared/SportsWidget";
-import { VideoCard, VideoItem } from "@/components/shared/VideoCard";
+
 import { AiSimulator } from "@/components/shared/AiSimulator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-// Mock Videos
-const MOCK_VIDEOS: VideoItem[] = [
-  {
-    id: "1",
-    title: "Inside the AI Lab: Building Tomorrow's Newsroom Intelligence",
-    duration: "12:15",
-    views: "124K views",
-    imageUrl:
-      "https://storage.ghost.io/c/9f/98/9f98c569-396e-485a-be2d-9d9c9af5e0bb/content/images/size/w1200/2025/09/AI-research-labs.jpg",
-    category: "Technology",
-    publishedAt: "2 days ago",
-  },
-  {
-    id: "2",
-    title: "Climate Summit Highlights: Delegates Agree on Renewable Accords",
-    duration: "08:42",
-    views: "45K views",
-    imageUrl:
-      "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=800",
-    category: "World",
-    publishedAt: "3 days ago",
-  },
-  {
-    id: "3",
-    title: "Euro Cup Final Moments: Underdog FC Lift the Historic Trophy",
-    duration: "15:20",
-    views: "89K views",
-    imageUrl:
-      "https://images.unsplash.com/photo-1459865264687-595d652de67e?auto=format&fit=crop&q=80&w=800",
-    category: "Sports",
-    publishedAt: "5 days ago",
-  },
-  {
-    id: "4",
-    title: "Market Analysis: Understanding Stabilizing Interest Rates",
-    duration: "10:05",
-    views: "150K views",
-    imageUrl:
-      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&q=80&w=800",
-    category: "Business",
-    publishedAt: "1 week ago",
-  },
-];
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [heroIndex, setHeroIndex] = useState(0);
-  const [activeVideo, setActiveVideo] = useState<VideoItem>(MOCK_VIDEOS[0]);
+
 
   useEffect(() => {
     getArticles()
@@ -253,72 +210,7 @@ export default function Home() {
         </div>
 
         {/* Video Theatre Hub */}
-        <section className="rounded-2xl bg-zinc-900 border border-zinc-800/80 p-6 md:p-8 text-white space-y-6">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-800 pb-4">
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-teal-400 bg-teal-500/10 px-2.5 py-0.5 rounded border border-teal-500/20 uppercase tracking-widest">
-                Media Hub
-              </span>
-              <h2 className="text-2xl font-extrabold tracking-tight text-white font-sans">
-                Featured Video Briefings
-              </h2>
-              <p className="text-sm text-zinc-400">
-                Real-time video updates and auto-generated transcripts with visual indicators
-              </p>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-8 space-y-4">
-              <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-zinc-950 border border-zinc-800 shadow-lg">
-                <Image
-                  src={activeVideo.imageUrl}
-                  alt={activeVideo.title}
-                  fill
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-500 text-zinc-950 shadow-2xl hover:scale-110 transition-transform cursor-pointer">
-                    <FaPlay className="size-6 ml-1" />
-                  </div>
-                </div>
-                <div className="absolute top-4 left-4">
-                  <Badge className="bg-teal-500 text-zinc-950 font-bold uppercase hover:bg-teal-400 border-none shadow-sm">
-                    {activeVideo.category}
-                  </Badge>
-                </div>
-                <div className="absolute bottom-4 right-4 rounded bg-black/80 px-2 py-0.5 text-xs font-semibold text-white">
-                  {activeVideo.duration}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-xl font-bold text-white leading-snug">
-                  {activeVideo.title}
-                </h3>
-                <div className="flex items-center gap-2 text-sm text-zinc-400">
-                  <span>{activeVideo.views}</span>
-                  <span>•</span>
-                  <span>Published {activeVideo.publishedAt}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="lg:col-span-4 flex flex-col gap-2 max-h-[420px] overflow-y-auto pr-1">
-              <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest block px-2 mb-1">
-                Up Next ({MOCK_VIDEOS.length - 1})
-              </span>
-              {MOCK_VIDEOS.map((video) => (
-                <VideoCard
-                  key={video.id}
-                  video={video}
-                  layout="list"
-                  active={activeVideo.id === video.id}
-                  onClick={() => setActiveVideo(video)}
-                />
-              ))}
-            </div>
-          </div>
-        </section>
 
         {/* Scientific Breakthroughs section */}
         <div className="space-y-6">

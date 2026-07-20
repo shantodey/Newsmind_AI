@@ -1,7 +1,8 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 
 const BACKEND_URL = process.env.SERVER_URL || "http://localhost:5001";
 
@@ -17,6 +18,8 @@ async function getAuthHeaders() {
   if (session?.user) {
     reqHeaders.set("x-user-id", session.user.id);
     reqHeaders.set("x-user-role", (session.user as { role?: string }).role || "user");
+    reqHeaders.set("x-user-email", session.user.email || "");
+    reqHeaders.set("x-user-name", session.user.name || "");
   }
 
   return { reqHeaders, session };
@@ -58,6 +61,33 @@ export async function getArticleById(id: string) {
   }
 }
 
+export async function updateUserProfile(formData: { name: string; bio: string; avatar: string }) {
+  try {
+    const { reqHeaders, session } = await getAuthHeaders();
+
+    if (!session?.user) {
+      return { success: false, error: "You must be logged in to update your profile." };
+    }
+
+    const response = await fetch(`${BACKEND_URL}/api/users/profile`, {
+      method: "PATCH",
+      headers: reqHeaders,
+      body: JSON.stringify(formData),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: data.message || data.error || "Failed to update profile" };
+    }
+
+    revalidatePath("/profile");
+    return { success: true, data };
+  } catch (error: any) {
+    console.error("Server Action updateUserProfile error:", error);
+    return { success: false, error: error.message || "Something went wrong on the server" };
+  }
+}
 export async function getArticleStats() {
   try {
     const { reqHeaders } = await getAuthHeaders();
@@ -119,13 +149,13 @@ export async function generateAiTagsAndSummary(title: string, content: string) {
   }
 }
 
-export async function syncExpressAuth(action: "login" | "register", name?: string, email?: string, password?: string) {
+export async function syncExpressAuth(action: "login" | "register", name?: string, email?: string, password?: string, avatar?: string) {
   try {
     const endpoint = action === "login" ? "/api/auth/login" : "/api/auth/register";
     const res = await fetch(`${BACKEND_URL}${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, avatar }),
     });
     if (!res.ok) return null;
     return await res.json();
@@ -193,14 +223,62 @@ export async function likeArticle(id: string) {
       method: "POST",
       headers: reqHeaders,
     });
+
     if (!res.ok) {
       const text = await res.text();
       throw new Error(text || "Failed to like article");
     }
+
     return await res.json();
   } catch (error) {
     console.error("Server Action likeArticle error:", error);
     return { error: error instanceof Error ? error.message : "Network error" };
+  }
+}
+
+// ইনিশিয়াল লাইক স্ট্যাটাস চেক করার জন্য হেল্পার অ্যাকশন
+export async function getLikeStatus(id: string) {
+  try {
+    const { reqHeaders } = await getAuthHeaders();
+    const res = await fetch(`${BACKEND_URL}/api/articles/${id}/like-status`, {
+      method: "GET",
+      headers: reqHeaders,
+    });
+
+    if (!res.ok) return { liked: false };
+    return await res.json();
+  } catch (error) {
+    return { liked: false };
+  }
+}
+export async function getUserBookmarks() {
+  try {
+    const { reqHeaders } = await getAuthHeaders();
+    const res = await fetch(`${BACKEND_URL}/api/users/bookmarks`, {
+      headers: reqHeaders,
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Failed to fetch bookmarks");
+    const data = await res.json();
+    return data.bookmarks || [];
+  } catch (error) {
+    console.error("Server Action getUserBookmarks error:", error);
+    return [];
+  }
+}
+
+export async function getBookmarkStatus(id: string) {
+  try {
+    const { reqHeaders } = await getAuthHeaders();
+    const res = await fetch(`${BACKEND_URL}/api/articles/${id}/bookmark`, {
+      headers: reqHeaders,
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Failed to fetch bookmark status");
+    return await res.json();
+  } catch (error) {
+    console.error("Server Action getBookmarkStatus error:", error);
+    return { bookmarked: false };
   }
 }
 
@@ -266,7 +344,6 @@ export async function aiSentiment(text: string) {
     return null;
   }
 }
-
 export async function aiRecommendations() {
   try {
     const res = await fetch(`${BACKEND_URL}/api/ai/recommendations`, {
@@ -296,3 +373,17 @@ export async function aiChat(messages: any[], articleId?: string) {
   }
 }
 
+export async function toggleBookmark(articleId: string) {
+  try {
+    const { reqHeaders } = await getAuthHeaders();
+    const res = await fetch(`${BACKEND_URL}/api/articles/${articleId}/bookmark`, {
+      method: "POST",
+      headers: reqHeaders,
+    });
+    if (!res.ok) throw new Error("Failed to toggle bookmark");
+    return await res.json();
+  } catch (error) {
+    console.error("Server Action toggleBookmark error:", error);
+    return { error: "Network error" };
+  }
+}

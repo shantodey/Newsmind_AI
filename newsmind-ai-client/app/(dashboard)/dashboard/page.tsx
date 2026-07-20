@@ -156,10 +156,6 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button className="relative flex size-9 items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
-                <FaBell className="size-4" />
-                <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-teal-500" />
-              </button>
               <Link
                 href="/profile"
                 className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
