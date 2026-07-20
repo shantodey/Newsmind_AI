@@ -1,10 +1,10 @@
 "use client";
 
-import * as React from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { getArticles } from "@/lib/server";
-import { FaRegClock, FaRegBookmark, FaHeart, FaArrowRight, FaPlay, FaRegLightbulb} from "react-icons/fa6";
+import { FaRegClock, FaPlay, FaRegLightbulb } from "react-icons/fa6";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { SectionHeader } from "@/components/shared/SectionHeader";
@@ -16,118 +16,6 @@ import { VideoCard, VideoItem } from "@/components/shared/VideoCard";
 import { AiSimulator } from "@/components/shared/AiSimulator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-// Mock Database of Articles
-const MOCK_ARTICLES: Article[] = [
-  {
-    id: "1",
-    title: "The Future of Generative AI in Modern Newsrooms & Media Platforms",
-    excerpt:
-      "Artificial intelligence is rapidly restructuring how news is gathered, compiled, and personalized. Senior journalists share their experiences with agent workflows.",
-    category: "Technology",
-    imageUrl:
-      "https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&q=80&w=800",
-    author: {
-      name: "Dr. Sarah Jenkins",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150",
-    },
-    publishedAt: "July 18, 2026",
-    readTime: "4 min read",
-    sentiment: "positive",
-    sentimentScore: 0.92,
-    tags: ["ArtificialIntelligence", "Media", "Journalism", "Innovation"],
-  },
-  {
-    id: "2",
-    title: "Global Climate Summit Reaches Landmark Accord on Net-Zero Targets",
-    excerpt:
-      "Delegates from over 190 countries have finalized a historic agreement accelerating renewable energy mandates and fossil fuel transition timelines.",
-    category: "World",
-    imageUrl:
-      "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=800",
-    author: {
-      name: "Marcus Vance",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150",
-    },
-    publishedAt: "July 17, 2026",
-    readTime: "6 min read",
-    sentiment: "positive",
-    sentimentScore: 0.85,
-    tags: ["ClimateChange", "Policy", "Summit2026", "Environment"],
-  },
-  {
-    id: "3",
-    title: "Interest Rates Stabilize Globally as Core Inflation Pressures Cool",
-    excerpt:
-      "Central banking committees signal a halt in rate hikes, bringing relief to retail developers, commercial real estate, and consumer mortgage markets.",
-    category: "Business",
-    imageUrl:
-      "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&q=80&w=800",
-    author: {
-      name: "Elena Rostova",
-      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150",
-    },
-    publishedAt: "July 16, 2026",
-    readTime: "5 min read",
-    sentiment: "neutral",
-    sentimentScore: 0.74,
-    tags: ["Economy", "Inflation", "Banking", "Markets"],
-  },
-  {
-    id: "4",
-    title: "Tech Giants Face Broad Antitrust Overhaul in European Union Courts",
-    excerpt:
-      "New directives force app store decoupling, cross-compatibility of messaging architectures, and tighter restrictions on ad tracking consent.",
-    category: "Technology",
-    imageUrl:
-      "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=800",
-    author: {
-      name: "Dr. Sarah Jenkins",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150",
-    },
-    publishedAt: "July 15, 2026",
-    readTime: "7 min read",
-    sentiment: "negative",
-    sentimentScore: 0.81,
-    tags: ["Regulation", "Europe", "Antitrust", "Privacy"],
-  },
-  {
-    id: "5",
-    title: "Underdog FC Secures Historic Victory in European Cup Finals",
-    excerpt:
-      "In a dramatic penalty shootout, the tournament outsiders defeated the reigning league champions to secure their first-ever continental trophy.",
-    category: "Sports",
-    imageUrl:
-      "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=800",
-    author: {
-      name: "Julian Alvarez",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150",
-    },
-    publishedAt: "July 14, 2026",
-    readTime: "3 min read",
-    sentiment: "positive",
-    sentimentScore: 0.98,
-    tags: ["Football", "EuropeanCup", "Championship", "Underdog"],
-  },
-  {
-    id: "6",
-    title: "Breakthrough Cancer Vaccine Reaches Final Phase III Human Trials",
-    excerpt:
-      "Developed using advanced mRNA synthesis, the personalized immunotherapy vaccine demonstrates high efficacy in preventing post-surgery tumor relapse.",
-    category: "Science",
-    imageUrl:
-      "https://images.unsplash.com/photo-1530026405186-ed1ea0ac7a63?auto=format&fit=crop&q=80&w=800",
-    author: {
-      name: "Elena Rostova",
-      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150",
-    },
-    publishedAt: "July 12, 2026",
-    readTime: "8 min read",
-    sentiment: "positive",
-    sentimentScore: 0.96,
-    tags: ["Medicine", "Oncology", "Vaccine", "Science"],
-  },
-];
 
 // Mock Videos
 const MOCK_VIDEOS: VideoItem[] = [
@@ -174,16 +62,13 @@ const MOCK_VIDEOS: VideoItem[] = [
 ];
 
 export default function Home() {
-  const [selectedCategory, setSelectedCategory] = React.useState("ALL");
-  const [articles, setArticles] = React.useState<Article[]>(MOCK_ARTICLES);
-  const [selectedArticle, setSelectedArticle] = React.useState<Article | null>(
-    MOCK_ARTICLES[0]
-  );
-  const [heroIndex, setHeroIndex] = React.useState(0);
-  const [activeVideo, setActiveVideo] = React.useState<VideoItem>(
-    MOCK_VIDEOS[0]
-  );
-  React.useEffect(() => {
+  const [selectedCategory, setSelectedCategory] = useState("ALL");
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [heroIndex, setHeroIndex] = useState(0);
+  const [activeVideo, setActiveVideo] = useState<VideoItem>(MOCK_VIDEOS[0]);
+
+  useEffect(() => {
     getArticles()
       .then((data) => {
         if (data && data?.length > 0) {
@@ -201,20 +86,15 @@ export default function Home() {
             sentiment: a.sentiment || "neutral",
             author: a.author || { name: "NewsMind Agent", avatar: "" }
           }));
-          const combined = [...dbArticles, ...MOCK_ARTICLES];
-          const unique = combined.filter((art, index, self) =>
-            index === self.findIndex((t) => t.title === art.title)
-          );
-          setArticles(unique);
-          setSelectedArticle(unique[0]);
+          setArticles(dbArticles);
+          setSelectedArticle(dbArticles[0]);
         }
       })
       .catch((err) => console.error("Error fetching homepage articles:", err));
   }, []);
 
-  const categories = ["ALL", "TECHNOLOGY", "WORLD", "BUSINESS", "SPORTS", "SCIENCE"];
+  const categories = ["ALL", "TECHNOLOGY", "WORLD", "BUSINESS", "SPORT", "SCIENCE"];
 
-  // Filtered popular posts
   const filteredArticles =
     selectedCategory === "ALL"
       ? articles
@@ -287,7 +167,7 @@ export default function Home() {
                 </div>
 
                 <div className="flex gap-2">
-                  <button  onClick={handleHeroPrev} className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
+                  <button onClick={handleHeroPrev} className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
                     ←
                   </button>
                   <button
@@ -349,7 +229,6 @@ export default function Home() {
                     article={article}
                     onSelectForAi={(art) => {
                       setSelectedArticle(art);
-                      // Scroll to AI Workroom widget
                       const el = document.getElementById("ai-workroom");
                       if (el) el.scrollIntoView({ behavior: "smooth" });
                     }}
@@ -365,20 +244,15 @@ export default function Home() {
 
           {/* Right section (Widgets: Weather, Scoreboard, AI simulator) */}
           <div className="lg:col-span-4 space-y-8">
-            {/* Weather Widget */}
             <WeatherWidget />
-
-            {/* Sports Scoreboard */}
             <SportsWidget />
-
-            {/* AI Simulator Workroom */}
             <div id="ai-workroom" className="scroll-mt-20">
               <AiSimulator selectedArticle={selectedArticle} />
             </div>
           </div>
         </div>
 
-        {/* Video Theatre Hub (Dark themed layout container) */}
+        {/* Video Theatre Hub */}
         <section className="rounded-2xl bg-zinc-900 border border-zinc-800/80 p-6 md:p-8 text-white space-y-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-zinc-800 pb-4">
             <div className="space-y-1">
@@ -395,7 +269,6 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Video Player Display */}
             <div className="lg:col-span-8 space-y-4">
               <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-zinc-950 border border-zinc-800 shadow-lg">
                 <Image
@@ -430,7 +303,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Sidebar Video Playlist */}
             <div className="lg:col-span-4 flex flex-col gap-2 max-h-[420px] overflow-y-auto pr-1">
               <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest block px-2 mb-1">
                 Up Next ({MOCK_VIDEOS.length - 1})
@@ -448,7 +320,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Top Posts & Masonry grid layout */}
+        {/* Scientific Breakthroughs section */}
         <div className="space-y-6">
           <SectionHeader
             title="Scientific Breakthroughs & Insights"
@@ -471,7 +343,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Informative Newsletter/CTA block */}
+        {/* CTA block */}
         <section className="relative rounded-2xl bg-zinc-900 border border-zinc-800 text-white p-8 md:p-12 overflow-hidden shadow-xl">
           <div className="absolute top-0 right-0 h-48 w-48 bg-teal-500/10 rounded-full blur-3xl -z-10" />
           <div className="absolute bottom-0 left-0 h-48 w-48 bg-zinc-800/20 rounded-full blur-2xl -z-10" />
