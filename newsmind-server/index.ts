@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express, { Request, Response } from "express";
 import cors from "cors";
-import { MongoClient, ObjectId } from "mongodb";
+import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -19,7 +19,13 @@ if (!mongoUri) {
 // ------------------------------
 // 2) MongoDB setup
 // ------------------------------
-const client = new MongoClient(mongoUri);
+const client = new MongoClient(mongoUri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
+});
 const db = client.db(process.env.MONGO_DB_NAME || "newsmind-ai");
 const user = db.collection("user");
 const users = db.collection("users");
@@ -527,7 +533,7 @@ app.post("/api/articles/:id/like", async (req: Request, res: Response) => {
   // 1. users কালেকশনে likedPosts ফিল্ডে articleId যোগ
   await user.updateOne(filter, { $addToSet: { likedPosts: articleId } } as any);
 
-  // 2. articles কালেকশনে likes কাউন্ট +১ বাড়ানো
+  // 2. articles কালেকশনে likes কাউন্ট +১ বাড়ানো
   const updatedArticle = await articles.findOneAndUpdate(
     { _id: new ObjectId(articleId) },
     { $inc: { likes: 1 } },
@@ -550,7 +556,7 @@ app.post("/api/articles/:id/like", async (req: Request, res: Response) => {
 
     const user = await getOrCreateUser(userId, authUser.email, authUser.name);
 
-    // String conversion নিশ্চিত করা যাতে ObjectId & String টাইপ ইস্যু না হয়
+    // String conversion নিশ্চিত করা যাতে ObjectId & String টাইপ ইস্যু না হয়
     const likedPosts: string[] = (user?.likedPosts || []).map((id: any) => id.toString());
     const hasLiked = likedPosts.includes(articleId.toString());
 
@@ -569,13 +575,13 @@ app.post("/api/articles/:id/like", async (req: Request, res: Response) => {
 
       return res.json({ liked: false, likes: updatedArticle?.likes || 0 });
     } else {
-      // Like Operation (Atomic check সহ যাতে একই সাথে ২ বার রিকোয়েস্ট আসলেও ১ বারই লাইক হয়)
+      // Like Operation (Atomic check সহ যাতে একই সাথে ২ বার রিকোয়েস্ট আসলেও ১ বারই লাইক হয়)
       const userUpdateResult = await users.updateOne(
         { _id: new ObjectId(userId), likedPosts: { $ne: articleId } },
         { $addToSet: { likedPosts: articleId } }
       );
 
-      // শুধুমাত্র যদি ইউজারের অ্যারিতে আইডি যুক্ত হয়, তখনই আর্টিকেলের লাইক কাউন্ট বাড়ানো হবে
+      // শুধুমাত্র যদি ইউজারের অ্যারিতে আইডি যুক্ত হয়, তখনই আর্টিকেলের লাইক কাউন্ট বাড়ানো হবে
       if (userUpdateResult.modifiedCount > 0) {
         const updatedArticle = await articles.findOneAndUpdate(
           { _id: new ObjectId(articleId) },
@@ -793,14 +799,41 @@ app.get("/api/ai/recommendations", async (_req: Request, res: Response) => {
 // ------------------------------
 // 10) Start server
 // ------------------------------
-connectToMongoDB()
-  .then(() => {
-    app.listen(port, () => {
-      console.log(`[server]: Server is running on port ${port}`);
+
+let isConnected = false;
+
+async function ensureDbConnected() {
+  if (!isConnected) {
+    await connectToMongoDB();
+    isConnected = true;
+  }
+}
+
+// Vercel-এ প্রতি রিকোয়েস্টে ফাংশন কল হয়, তাই connect middleware দিয়ে lazy করা হলো
+app.use(async (_req, _res, next) => {
+  try {
+    await ensureDbConnected();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/", (_req: Request, res: Response) => {
+  res.send("NewsMind AI server is running fine!");
+});
+
+if (process.env.NODE_ENV !== "production") {
+  connectToMongoDB()
+    .then(() => {
+      isConnected = true;
+      app.listen(port, () => {
+        console.log(`[server]: Server is running on port ${port}`);
+      });
+    })
+    .catch((error) => {
+      console.error("[server]: Failed to start server", error);
     });
-  })
-  .catch((error) => {
-    console.error("[server]: Failed to start server", error);
-  });
+}
 
 export default app;
