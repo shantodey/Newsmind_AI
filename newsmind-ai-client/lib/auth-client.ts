@@ -16,4 +16,5 @@ export const googleSignIn = async () => {
 };
 
 
-export const { signIn, signUp, useSession } = createAuthClient();
+export const { signIn, signOut, signUp, useSession } = createAuthClient();
+
