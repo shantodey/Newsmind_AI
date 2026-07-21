@@ -35,7 +35,7 @@ interface CompactPost {
 }
 
 interface ArticleSidebarProps {
-  articleId?: string;
+  articleId: string;
   author: Author;
   tags: string[];
   topPosts: CompactPost[];
@@ -105,17 +105,23 @@ const [isBookmarked, setIsBookmarked] = useState(
 const isAlreadyBookmarked =
   isBookmarked || Boolean(articleId && user?.bookmarks?.includes(articleId));
   const isButtonDisabled = !isLoggedIn || isAlreadyBookmarked;
-  const handleBookmarkToggle = async () => {
-    if (isButtonDisabled) return;
+ const handleBookmarkToggle = async () => {
+  if (!userId) {
+    router.push("/login");
+    return;
+  }
 
-    const res = await toggleBookmark(articleId, userId);
-    if (res && typeof res.bookmarked === "boolean") {
-      setIsBookmarked(res.bookmarked);
-      toast.success(res.bookmarked ? "Bookmarked!" : "Removed from bookmarks");
-    } else {
-      toast.error("Failed to update bookmark");
-    }
-  };
+  if (isAlreadyBookmarked) return;
+
+  const res = await toggleBookmark(articleId, userId);
+
+  if (res && typeof res.bookmarked === "boolean") {
+    setIsBookmarked(res.bookmarked);
+    toast.success(res.bookmarked ? "Bookmarked!" : "Removed from bookmarks");
+  } else {
+    toast.error("Failed to update bookmark");
+  }
+};
   const handleFollowToggle = () => {
     if (!userId) {
       router.push("/login");
