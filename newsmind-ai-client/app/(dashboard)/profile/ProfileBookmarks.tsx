@@ -22,18 +22,20 @@ export function ProfileBookmarks({
   onCountChange?: (count: number) => void;
 }) {
   const { data: session, isPending } = authClient.useSession();
-type SessionUser = NonNullable<typeof session>["user"] & {
-  bookmarks?: string[];
-};
+  type SessionUser = NonNullable<typeof session>["user"] & {
+    id?: string;
+    bookmarks?: string[];
+  };
 
-const user = session?.user as SessionUser | undefined;
-
-const userBookmarkIds = user?.bookmarks ?? [];
+  const user = session?.user as SessionUser | undefined;
+  const userId = user?.id;
 
   const [bookmarks, setBookmarks] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    const userBookmarkIds = user?.bookmarks ?? [];
+
     const fetchBookmarkedArticles = async () => {
       if (userBookmarkIds.length === 0) {
         setBookmarks([]);
@@ -57,14 +59,16 @@ const userBookmarkIds = user?.bookmarks ?? [];
     if (!isPending) {
       fetchBookmarkedArticles();
     }
-  }, [isPending, userBookmarkIds]);
+  }, [isPending, onCountChange, user?.bookmarks]);
 
   const removeBookmark = async (articleId: string) => {
+    if (!userId) return;
+
     try {
       const updatedBookmarks = bookmarks.filter((b) => b._id !== articleId);
       setBookmarks(updatedBookmarks);
       if (onCountChange) onCountChange(updatedBookmarks.length);
-      await toggleBookmark(articleId);
+      await toggleBookmark(articleId, userId);
     } catch (error) {
       console.error("Failed to remove bookmark:", error);
     }
