@@ -108,20 +108,21 @@ function LoginForm() {
   const [loading, setLoading] = React.useState(false);
   const [serverError, setServerError] = React.useState("");
   const { register, handleSubmit, formState: { errors } } = useForm<LoginValues>();
+  
+  // authClient সরাসরি ব্যবহার করুন
   const authClient = createAuthClient();
-  const signIn = async () => {
-    const data = await authClient.signIn.social({
-      provider: "google",
-    });
-  };
+
   const onSubmit = async (data: LoginValues) => {
     setLoading(true);
     setServerError("");
-    const { error } = await signIn.email({
+    
+    // authClient.signIn.email ব্যবহার করা হয়েছে
+    const { error } = await authClient.signIn.email({
       email: data.email,
       password: data.password,
       callbackURL: "/dashboard",
     });
+    
     if (error) {
       setServerError(error.message || "Invalid credentials. Please try again.");
       setLoading(false);
@@ -140,7 +141,7 @@ function LoginForm() {
   };
 
   const handleGoogleSignIn = async () => {
-    await signIn.social({ provider: "google", callbackURL: "/dashboard" });
+    await authClient.signIn.social({ provider: "google", callbackURL: "/dashboard" });
   };
 
   return (
@@ -182,7 +183,7 @@ function LoginForm() {
         <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-zinc-200 dark:border-zinc-800" /></div>
         <div className="relative flex justify-center"><span className="bg-zinc-50 dark:bg-zinc-950 px-3 text-xs font-semibold text-zinc-400">OR CONTINUE WITH</span></div>
       </div>
-      <Button type="button" variant="outline" onClick={signIn} className="w-full h-11 font-bold rounded-lg border-zinc-200 dark:border-zinc-700 cursor-pointer flex items-center justify-center gap-2">
+      <Button type="button" variant="outline" onClick={handleGoogleSignIn} className="w-full h-11 font-bold rounded-lg border-zinc-200 dark:border-zinc-700 cursor-pointer flex items-center justify-center gap-2">
         <FaGoogle className="size-4 text-rose-500" /> Continue with Google
       </Button>
       <p className="text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">
