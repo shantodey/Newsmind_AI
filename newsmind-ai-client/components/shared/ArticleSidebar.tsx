@@ -74,7 +74,9 @@ const userId = user?.id;
 const isLoggedIn = Boolean(userId);
 
   // Like state
-  const [liked, setLiked] = useState(!!user?.likedPosts?.includes(articleId));
+const [liked, setLiked] = useState(
+  !!articleId && !!user?.likedPosts?.includes(articleId)
+);
   const [currentLikes, setCurrentLikes] = useState(likesCount);
   const [isLiking, setIsLiking] = useState(false);
 
@@ -96,9 +98,12 @@ const isLoggedIn = Boolean(userId);
     setIsLiking(false);
   };
 
-  const [isBookmarked, setIsBookmarked] = useState(!!user?.bookmarks?.includes(articleId));
+const [isBookmarked, setIsBookmarked] = useState(
+  Boolean(articleId && user?.bookmarks?.includes(articleId))
+);
 
-  const isAlreadyBookmarked = isBookmarked || !!user?.bookmarks?.includes(articleId);
+const isAlreadyBookmarked =
+  isBookmarked || Boolean(articleId && user?.bookmarks?.includes(articleId));
   const isButtonDisabled = !isLoggedIn || isAlreadyBookmarked;
   const handleBookmarkToggle = async () => {
     if (isButtonDisabled) return;
