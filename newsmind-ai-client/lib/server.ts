@@ -260,16 +260,35 @@ export async function getLikeStatus(id: string) {
 }
 export async function getUserBookmarks() {
   try {
-    const { reqHeaders } = await getAuthHeaders();
-    const res = await fetch(`${BACKEND_URL}/api/users/bookmarks`, {
-      headers: reqHeaders,
+    const reqHeaders = await headers();
+    const cookieValue = reqHeaders.get("cookie") || "";
+
+    console.log("[getUserBookmarks] Cookie being forwarded:", cookieValue ? "present" : "❌ EMPTY");
+    console.log("[getUserBookmarks] Calling:", `${process.env.SERVER_URL}/api/users/bookmarks`);
+
+    const res = await fetch(`${process.env.SERVER_URL}/api/users/bookmarks`, {
+      method: "GET",
+      headers: {
+        cookie: cookieValue,
+      },
       cache: "no-store",
     });
-    if (!res.ok) throw new Error("Failed to fetch bookmarks");
+
+    console.log("[getUserBookmarks] Backend response status:", res.status);
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.log("[getUserBookmarks] ❌ Backend returned non-OK. Body:", text);
+      return [];
+    }
+
     const data = await res.json();
+    console.log("[getUserBookmarks] Backend returned bookmarks count:", data.bookmarks?.length ?? 0);
+    console.log("[getUserBookmarks] Raw data:", JSON.stringify(data).slice(0, 500));
+
     return data.bookmarks || [];
   } catch (error) {
-    console.error("Server Action getUserBookmarks error:", error);
+    console.error("[getUserBookmarks] 🔥 Fetch failed:", error);
     return [];
   }
 }

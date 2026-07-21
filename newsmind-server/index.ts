@@ -443,33 +443,18 @@ app.put("/api/user/update", async (req: Request, res: Response) => {
   }
 });
 
-app.get("/api/users/bookmarks", async (req: Request, res: Response) => {
-  try {
-    const authUser = getAuthUser(req);
-    if (!authUser?.userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+// GET /api/users/bookmarks
+app.post("/api/users/bookmarks", async (req: Request, res: Response) => {
+  console.log("Request Body:", req.body);
 
-    const user = await getOrCreateUser(authUser.userId, authUser.email, authUser.name);
-    const bookmarkIds = Array.isArray(user?.bookmarks) ? user.bookmarks : [];
-    const validIds = bookmarkIds.filter((id: string) => ObjectId.isValid(id));
+  const { bookmarkIds } = req.body;
 
-    if (!validIds.length) {
-      return res.json({ bookmarks: [] });
-    }
+  console.log("Bookmark IDs:", bookmarkIds);
+  console.log("Is Array:", Array.isArray(bookmarkIds));
+  console.log("Length:", bookmarkIds?.length);
 
-    const bookmarkedArticles = await articles
-      .find({ _id: { $in: validIds.map((id: string) => new ObjectId(id)) } })
-      .sort({ createdAt: -1 })
-      .toArray();
-
-    res.json({ bookmarks: bookmarkedArticles.map(normalizeArticle) });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to fetch bookmarks" });
-  }
+  res.json({ success: true });
 });
-
 app.get("/api/articles/:id/bookmark", async (req: Request, res: Response) => {
   try {
     const authUser = getAuthUser(req);
