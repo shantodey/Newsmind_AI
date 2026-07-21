@@ -1,3 +1,7 @@
+import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
+import Link from "next/link";
+import { FaBookmark } from "react-icons/fa6";
 
 
 const BookMarks = () => {
@@ -7,11 +11,11 @@ const BookMarks = () => {
                 <h2 className="font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight">
                   Saved Articles{" "}
                   <Badge variant="secondary" className="ml-2 text-xs font-bold">
-                    {bookmarks.length}
+                    {/* {bookmarks.length} */}
                   </Badge>
                 </h2>
               </div>
-              {bookmarks.length === 0 ? (
+              {/* {bookmarks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
                   <FaBookmark className="size-12 text-zinc-300 dark:text-zinc-700" />
                   <p className="font-bold text-zinc-500">No bookmarks saved yet</p>
@@ -64,7 +68,7 @@ const BookMarks = () => {
                     </div>
                   ))}
                 </div>
-              )}
+              )} */}
             </div>
     );
 };
