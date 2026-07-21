@@ -1,10 +1,11 @@
+
 "use client";
 
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FaBookmark, FaRegClock, FaTrash } from "react-icons/fa6";
-import { toggleBookmark } from "@/lib/server";
+import { getUserBookmarks, toggleBookmark } from "@/lib/server";
 import { authClient } from "@/lib/auth-client";
 
 interface Article {
@@ -21,46 +22,31 @@ export function ProfileBookmarks({
   onCountChange?: (count: number) => void;
 }) {
   const { data: session, isPending } = authClient.useSession();
-  
-  // session থেকে সরাসরি আপনার বুকমার্ক অ্যারে নেওয়া হচ্ছে
-  const userBookmarkIds = session?.user?.bookmarks || []; 
-  console.log(userBookmarkIds);
-  
-  
+  const user = session?.user as
+    | (typeof session.user & { bookmarks?: string[] })
+    | undefined;
+
+  const userBookmarkIds = user?.bookmarks ?? [];
+
   const [bookmarks, setBookmarks] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchBookmarkedArticles = async () => {
-      // যদি বুকমার্ক অ্যারে ফাঁকা থাকে, তবে API কল করার দরকার নেই
       if (userBookmarkIds.length === 0) {
         setBookmarks([]);
         setLoading(false);
-        if (onCountChange) onCountChange(0);
+        onCountChange?.(0);
         return;
       }
 
       try {
-        // ফ্রন্টএন্ড থেকে অ্যারেটি ব্যাকএন্ডে পাঠানো হচ্ছে
-        const res = await fetch("http://localhost:5001/api/users/bookmarks", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ bookmarkIds: userBookmarkIds }),
-        });
+        const fetchedArticles = await getUserBookmarks(userBookmarkIds);
 
-        if (res.ok) {
-          const data = await res.json();
-          const fetchedArticles: Article[] = data.bookmarks || [];
-          setBookmarks(fetchedArticles);
-
-          if (onCountChange) {
-            onCountChange(fetchedArticles.length);
-          }
-        }
+        setBookmarks(fetchedArticles);
+        onCountChange?.(fetchedArticles.length);
       } catch (error) {
-        console.error("Failed to fetch bookmarks:", error);
+        console.error(error);
       } finally {
         setLoading(false);
       }
@@ -69,7 +55,7 @@ export function ProfileBookmarks({
     if (!isPending) {
       fetchBookmarkedArticles();
     }
-  }, [isPending, userBookmarkIds.length]); // ID অ্যারের লেংথ পরিবর্তন হলে আবার রান করবে
+  }, [isPending, userBookmarkIds]);
 
   const removeBookmark = async (articleId: string) => {
     try {
@@ -162,4 +148,6 @@ export function ProfileBookmarks({
       )}
     </div>
   );
+
+
 }

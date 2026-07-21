@@ -445,16 +445,26 @@ app.put("/api/user/update", async (req: Request, res: Response) => {
 
 // GET /api/users/bookmarks
 app.post("/api/users/bookmarks", async (req: Request, res: Response) => {
-  console.log("Request Body:", req.body);
+  try {
 
-  const { bookmarkIds } = req.body;
-
-  console.log("Bookmark IDs:", bookmarkIds);
-  console.log("Is Array:", Array.isArray(bookmarkIds));
-  console.log("Length:", bookmarkIds?.length);
-
-  res.json({ success: true });
+    const { bookmarkIds } = req.body;
+    if (!bookmarkIds || !Array.isArray(bookmarkIds) || bookmarkIds.length === 0) {
+      return res.json({ bookmarks: [] });
+    }
+    const objectIds = bookmarkIds
+      .filter((id: string) => ObjectId.isValid(id))
+      .map((id: string) => new ObjectId(id));
+    const bookmarkedArticles = await db
+      .collection("articles")
+      .find({ _id: { $in: objectIds } })
+      .toArray();
+    res.json({ bookmarks: bookmarkedArticles });
+  } catch (error) {
+    console.error("Fetch bookmarks error:", error);
+    res.status(500).json({ error: "Failed to fetch bookmarked articles" });
+  }
 });
+
 app.get("/api/articles/:id/bookmark", async (req: Request, res: Response) => {
   try {
     const authUser = getAuthUser(req);

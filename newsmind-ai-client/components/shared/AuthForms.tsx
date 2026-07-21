@@ -4,11 +4,12 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { FaRegLightbulb, FaGoogle, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser} from "react-icons/fa6";
+import { FaRegLightbulb, FaGoogle, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import { signIn, signUp } from "@/lib/auth-client";
 import { syncExpressAuth } from "@/lib/server";
 import { uploadToImageBB } from "@/lib/imagebb";
+import { createAuthClient } from "better-auth/react";
 
 type LoginValues = { email: string; password: string };
 type RegisterValues = { name: string; email: string; password: string; confirm: string };
@@ -107,7 +108,12 @@ function LoginForm() {
   const [loading, setLoading] = React.useState(false);
   const [serverError, setServerError] = React.useState("");
   const { register, handleSubmit, formState: { errors } } = useForm<LoginValues>();
-
+  const authClient = createAuthClient();
+  const signIn = async () => {
+    const data = await authClient.signIn.social({
+      provider: "google",
+    });
+  };
   const onSubmit = async (data: LoginValues) => {
     setLoading(true);
     setServerError("");
@@ -176,7 +182,7 @@ function LoginForm() {
         <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-zinc-200 dark:border-zinc-800" /></div>
         <div className="relative flex justify-center"><span className="bg-zinc-50 dark:bg-zinc-950 px-3 text-xs font-semibold text-zinc-400">OR CONTINUE WITH</span></div>
       </div>
-      <Button type="button" variant="outline" onClick={handleGoogleSignIn} className="w-full h-11 font-bold rounded-lg border-zinc-200 dark:border-zinc-700 cursor-pointer flex items-center justify-center gap-2">
+      <Button type="button" variant="outline" onClick={signIn} className="w-full h-11 font-bold rounded-lg border-zinc-200 dark:border-zinc-700 cursor-pointer flex items-center justify-center gap-2">
         <FaGoogle className="size-4 text-rose-500" /> Continue with Google
       </Button>
       <p className="text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">
