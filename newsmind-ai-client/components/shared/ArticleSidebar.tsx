@@ -61,10 +61,17 @@ export function ArticleSidebar({
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(author.followers);
 
-  const { data: session } = authClient.useSession();
-  const user = session?.user as | (typeof session.user & { likedPosts?: string[]; bookmarks?: string[] }) | undefined;
-  const userId = user?.id;
-  const isLoggedIn = Boolean(userId);
+const { data: session } = authClient.useSession();
+
+type SessionUser = NonNullable<typeof session>["user"] & {
+  likedPosts?: string[];
+  bookmarks?: string[];
+};
+
+const user = session?.user as SessionUser | undefined;
+
+const userId = user?.id;
+const isLoggedIn = Boolean(userId);
 
   // Like state
   const [liked, setLiked] = useState(!!user?.likedPosts?.includes(articleId));
