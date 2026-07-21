@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FaBookmark, FaRegClock, FaTrash } from "react-icons/fa6";
-import { Badge } from "@/components/ui/badge";
 import { getUserBookmarks, toggleBookmark } from "@/lib/server";
 
 export type BookmarkItem = {
@@ -68,9 +67,7 @@ export function ProfileBookmarks({ onCountChange }: ProfileBookmarksProps) {
       <div className="flex items-center justify-between">
         <h2 className="font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight">
           Saved Articles{" "}
-          <Badge variant="secondary" className="ml-2 text-xs font-bold">
-            {bookmarks.length}
-          </Badge>
+          <button className="ml-2 text-xs font-bold">{bookmarks.length}</button>
         </h2>
       </div>
       {bookmarks.length === 0 ? (
@@ -101,9 +98,8 @@ export function ProfileBookmarks({ onCountChange }: ProfileBookmarksProps) {
                 />
               </div>
               <div className="flex-1 min-w-0 space-y-1.5">
-                <Badge className="text-[9px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-none font-bold uppercase tracking-wider">
-                  {b.category}
-                </Badge>
+                <button className="text-[9px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-none font-bold uppercase tracking-wider"> {b.category}</button>
+                
                 <Link href={`/article/${b.id}`}>
                   <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50 line-clamp-2 hover:underline group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
                     {b.title}
