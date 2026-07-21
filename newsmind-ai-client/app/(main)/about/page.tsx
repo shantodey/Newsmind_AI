@@ -193,6 +193,7 @@ export default function AboutPage() {
               </Link>
             </div>
           </div>
+          
         </section>
       </main>
       <Footer />

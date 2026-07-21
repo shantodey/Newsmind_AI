@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -14,9 +13,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getBookmarkStatus, likeArticle, toggleBookmark } from "@/lib/server";
-import { useSession } from "@/lib/auth-client";
+import { likeArticle, toggleBookmark, } from "@/lib/server";
+import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface Author {
   name: string;
@@ -39,7 +40,7 @@ interface ArticleSidebarProps {
   tags: string[];
   topPosts: CompactPost[];
   likesCount?: number;
-  initialIsLiked?: boolean; // যোগ করা হয়েছে
+  initialIsLiked?: boolean;
   onTriggerAi: () => void;
 }
 
@@ -49,111 +50,65 @@ export function ArticleSidebar({
   tags,
   topPosts,
   likesCount = 0,
-  initialIsLiked = false, // ডিফল্ট মান
+  initialIsLiked = false,
   onTriggerAi,
 }: ArticleSidebarProps) {
-  const { data: session } = useSession();
   const router = useRouter();
-  const isLoggedIn = !!session?.user;
-  const [isFollowing, setIsFollowing] = React.useState(false);
-  const [followerCount, setFollowerCount] = React.useState(author.followers);
 
-  // Likes State
-  const [isLiked, setIsLiked] = React.useState(initialIsLiked);
-  const [currentLikes, setCurrentLikes] = React.useState(likesCount);
-  const [isLiking, setIsLiking] = React.useState(false);
 
-  // Bookmark State
-  const [isBookmarked, setIsBookmarked] = React.useState(false);
 
-  // Author and Likes Initial State Sync
-  React.useEffect(() => {
-    setFollowerCount(author.followers);
-    setCurrentLikes(likesCount);
-    setIsLiked(initialIsLiked);
-  }, [author.followers, likesCount, initialIsLiked]);
 
-  // Load Bookmark status
-  React.useEffect(() => {
-    if (!articleId) return;
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(author.followers);
 
-    let isMounted = true;
+  const { data: session } = authClient.useSession();
+  const user = session?.user as | (typeof session.user & { likedPosts?: string[]; bookmarks?: string[] }) | undefined;
+  const userId = user?.id;
+  const isLoggedIn = Boolean(userId);
 
-    const loadBookmarkStatus = async () => {
-      try {
-        const res = await getBookmarkStatus(articleId);
-        if (isMounted && typeof res?.bookmarked === "boolean") {
-          setIsBookmarked(res.bookmarked);
-          return;
-        }
-      } catch (error) {
-        console.error("Failed to load bookmark status", error);
-      }
-
-      try {
-        const savedBookmarks = JSON.parse(localStorage.getItem("news_mind_bookmarks") || "[]");
-        if (isMounted && savedBookmarks.includes(articleId)) {
-          setIsBookmarked(true);
-        }
-      } catch (e) {
-        console.error("Failed to load bookmarks", e);
-      }
-    };
-
-    loadBookmarkStatus();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [articleId]);
+  // Like state
+  const [liked, setLiked] = useState(!!user?.likedPosts?.includes(articleId));
+  const [currentLikes, setCurrentLikes] = useState(likesCount);
+  const [isLiking, setIsLiking] = useState(false);
 
   const handleLikeToggle = async () => {
-    if (!isLoggedIn) { router.push("/login"); return; }
-    if (isLiking || !articleId) return;
+    if (!user?.id) return router.push("/login");
+    if (liked || !articleId || isLiking) return;
 
     setIsLiking(true);
+    setLiked(true);
+    setCurrentLikes((n) => n + 1);
 
-    // Optimistic Update (ইউজার ক্লিক করার সাথে সাথে UI রেসপন্স করবে)
-    const prevLiked = isLiked;
-    const prevLikesCount = currentLikes;
-
-    setIsLiked(!prevLiked);
-    setCurrentLikes((prev) => (prevLiked ? prev - 1 : prev + 1));
-
-    try {
-      const res = await likeArticle(articleId);
-      if (res && !res.error) {
-        setIsLiked(res.liked);
-        setCurrentLikes(res.likes);
-      } else {
-        // রিকোয়েস্ট ব্যর্থ হলে রোলব্যাক
-        setIsLiked(prevLiked);
-        setCurrentLikes(prevLikesCount);
-      }
-    } catch (error) {
-      console.error("Error toggling like:", error);
-      setIsLiked(prevLiked);
-      setCurrentLikes(prevLikesCount);
-    } finally {
-      setIsLiking(false);
+    const res = await likeArticle(articleId);
+    if (res?.likes !== undefined) {
+      setCurrentLikes(res.likes);
+    } else {
+      setLiked(false);
+      setCurrentLikes((n) => n - 1);
     }
+    setIsLiking(false);
   };
 
+  const [isBookmarked, setIsBookmarked] = useState(!!user?.bookmarks?.includes(articleId));
+
+  const isAlreadyBookmarked = isBookmarked || !!user?.bookmarks?.includes(articleId);
+  const isButtonDisabled = !isLoggedIn || isAlreadyBookmarked;
   const handleBookmarkToggle = async () => {
-    if (!isLoggedIn) { router.push("/login"); return; }
-    if (!articleId) return;
-    try {
-      const res = await toggleBookmark(articleId);
-      if (res && !res.error) {
-        setIsBookmarked(res.bookmarked);
-      }
-    } catch (e) {
-      console.error("Failed to update bookmark", e);
+    if (isButtonDisabled) return;
+
+    const res = await toggleBookmark(articleId, userId);
+    if (res && typeof res.bookmarked === "boolean") {
+      setIsBookmarked(res.bookmarked);
+      toast.success(res.bookmarked ? "Bookmarked!" : "Removed from bookmarks");
+    } else {
+      toast.error("Failed to update bookmark");
     }
   };
-
   const handleFollowToggle = () => {
-    if (!isLoggedIn) { router.push("/login"); return; }
+    if (!userId) {
+      router.push("/login");
+      return;
+    }
     if (isFollowing) {
       setFollowerCount((prev) => prev - 1);
     } else {
@@ -170,31 +125,36 @@ export function ArticleSidebar({
           {/* Like Button */}
           <button
             onClick={handleLikeToggle}
-            disabled={isLiking}
-            className="flex flex-col items-center gap-1 text-zinc-500 hover:text-rose-500 transition-colors disabled:opacity-50 cursor-pointer"
+            disabled={!user?.id || liked || isLiking}
+            className={`flex flex-col items-center gap-1 transition-colors ${!user?.id
+              ? "opacity-50 cursor-not-allowed text-zinc-400"
+              : liked
+                ? "text-rose-500 cursor-default"
+                : "text-zinc-500 hover:text-rose-500 cursor-pointer disabled:opacity-50"
+              }`}
           >
-            {isLiked ? (
-              <FaHeart className="size-5 text-rose-500" />
-            ) : (
-              <FaRegHeart className="size-5" />
-            )}
-            <span className="text-[10px] font-bold">
-              {currentLikes.toLocaleString()} Likes
-            </span>
+            {liked ? <FaHeart className="size-5 text-rose-500" /> : <FaRegHeart className="size-5" />}
+            <span className="text-[10px] font-bold">{currentLikes.toLocaleString()} Likes</span>
           </button>
 
           {/* Bookmark Button */}
           <button
             onClick={handleBookmarkToggle}
-            className="flex flex-col items-center gap-1 text-zinc-500 hover:text-teal-600 transition-colors cursor-pointer"
+            disabled={isButtonDisabled}
+            className={`flex flex-col items-center gap-1 transition-colors ${!isLoggedIn
+              ? "text-zinc-400 cursor-not-allowed opacity-50" // ১. লগইন না থাকলে গ্রে ও নট-ক্লিকেবল
+              : isAlreadyBookmarked
+                ? "text-emerald-600 cursor-default"             // ২. বুকমার্ক করা থাকলে গ্রিন ও নট-ক্লিকেবল
+                : "text-zinc-500 hover:text-teal-600 cursor-pointer" // নরমাল স্টেট
+              }`}
           >
-            {isBookmarked ? (
-              <FaBookmark className="size-5 text-teal-600" />
+            {isAlreadyBookmarked ? (
+              <FaBookmark className="size-5 text-emerald-600" />
             ) : (
               <FaRegBookmark className="size-5" />
             )}
             <span className="text-[10px] font-bold">
-              {isBookmarked ? "Saved" : "Bookmark"}
+              {isAlreadyBookmarked ? "Saved" : "Bookmark"}
             </span>
           </button>
 

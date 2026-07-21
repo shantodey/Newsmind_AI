@@ -21,6 +21,7 @@ if (!mongoUri) {
 // ------------------------------
 const client = new MongoClient(mongoUri);
 const db = client.db(process.env.MONGO_DB_NAME || "newsmind-ai");
+const user = db.collection("user");
 const users = db.collection("users");
 const articles = db.collection("articles");
 const comments = db.collection("comments");
@@ -29,12 +30,7 @@ const analytics = db.collection("analytics");
 // ------------------------------
 // 3) Middleware
 // ------------------------------
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    credentials: true,
-  })
-);
+app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:3000", credentials: true,}));
 app.use(express.json());
 
 // ------------------------------
@@ -267,6 +263,24 @@ app.get("/api/auth/me", async (req: Request, res: Response) => {
 });
 
 
+// api for add bookmark data 
+app.post("/api/articles/bookmark", async (req: Request, res: Response) => {
+  const { userId, articleId } = req.body;
+  if (!userId || !articleId) return res.status(400).json({ error: "Missing ids" });
+
+  const filter = ObjectId.isValid(userId) ? { _id: new ObjectId(userId) } : { _id: userId };
+  const foundUser = await users.findOne(filter);
+
+  if (!foundUser) return res.status(404).json({ error: "User not found" });
+
+  const isBookmarked = foundUser.bookmarks?.includes(articleId);
+  const update = isBookmarked ? { $pull: { bookmarks: articleId } } : { $addToSet: { bookmarks: articleId } };
+
+  await users.updateOne(filter, update);
+  res.json({ bookmarked: !isBookmarked });
+});
+
+
 // 8) Article routes
 
 app.get("/api/articles/stats", async (_req: Request, res: Response) => {
@@ -399,38 +413,33 @@ app.get("/api/articles/:id", async (req: Request, res: Response) => {
   }
 });
 
-app.patch("/api/users/profile", async (req: Request, res: Response) => {
+app.put("/api/user/update", async (req: Request, res: Response) => {
   try {
-    const authUser = getAuthUser(req);
-    if (!authUser?.userId) {
-      return res.status(401).json({ error: "Unauthorized" });
+    const { id, name, email, image } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required to update profile" });
     }
 
-    const { name, bio, avatar } = req.body;
-    const existingUser = await getOrCreateUser(authUser.userId, authUser.email, authUser.name);
+    const updateData: Record<string, any> = { updatedAt: new Date() };
+    if (name !== undefined) updateData.name = name;
+    if (image !== undefined) updateData.avatar = image;
+    if (image !== undefined) updateData.image = image;
 
-    const updatedUser = await users.findOneAndUpdate(
-      { _id: existingUser?._id },
-      { $set: { name, bio, avatar, updatedAt: new Date() } },
-      { returnDocument: "after" }
+
+    
+    const result = await users.updateOne(
+      { email: String(email).toLowerCase() },
+      { $set: updateData },
+      { upsert: true }
     );
 
-    if (!updatedUser) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    res.json({
-      user: {
-        id: updatedUser._id.toString(),
-        name: updatedUser.name,
-        email: updatedUser.email,
-        role: updatedUser.role,
-        avatar: updatedUser.avatar,
-        bio: updatedUser.bio,
-      },
+    res.status(200).json({ 
+      success: true, 
+      message: "Profile updated successfully" 
     });
   } catch (error) {
-    res.status(500).json({ error: "Failed to update profile" });
+    console.error("Update Error:", error);
+    res.status(500).json({ success: false, message: "Failed to update profile" });
   }
 });
 
@@ -511,17 +520,26 @@ app.delete("/api/articles/:id", async (req: Request, res: Response) => {
 
 
 // Like status check
-app.get("/api/articles/:id/like-status", async (req: Request, res: Response) => {
-  try {
-    const authUser = getAuthUser(req);
-    if (!authUser?.userId) return res.json({ liked: false });
-    const user = await getOrCreateUser(authUser.userId, authUser.email, authUser.name);
-    const likedPosts: string[] = (user?.likedPosts || []).map((id: any) => id.toString());
-    const liked = likedPosts.includes(req.params.id.toString());
-    res.json({ liked });
-  } catch (error) {
-    res.json({ liked: false });
-  }
+app.post("/api/articles/:id/like", async (req: Request, res: Response) => {
+  const authUser = getAuthUser(req);
+  if (!authUser?.userId) return res.status(401).json({ error: "Unauthorized" });
+
+  const articleId = req.params.id;
+  const userId = authUser.userId;
+
+  const filter = { _id: new ObjectId(userId) };
+
+  // 1. users কালেকশনে likedPosts ফিল্ডে articleId যোগ
+  await user.updateOne(filter, { $addToSet: { likedPosts: articleId } } as any);
+
+  // 2. articles কালেকশনে likes কাউন্ট +১ বাড়ানো
+  const updatedArticle = await articles.findOneAndUpdate(
+    { _id: new ObjectId(articleId) },
+    { $inc: { likes: 1 } },
+    { returnDocument: "after" }
+  );
+
+  res.json({ liked: true, likes: updatedArticle?.likes || 0 });
 });
 
 //api for getting like 

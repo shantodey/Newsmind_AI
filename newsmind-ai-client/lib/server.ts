@@ -1,8 +1,8 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { cookies, headers } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+
 
 const BACKEND_URL = process.env.SERVER_URL || "http://localhost:5001";
 
@@ -61,31 +61,26 @@ export async function getArticleById(id: string) {
   }
 }
 
-export async function updateUserProfile(formData: { name: string; bio: string; avatar: string }) {
+
+export async function updateProfile(
+  id: string, 
+  name: string, 
+  email: string, 
+  image: string | null
+) {
   try {
-    const { reqHeaders, session } = await getAuthHeaders();
+    
 
-    if (!session?.user) {
-      return { success: false, error: "You must be logged in to update your profile." };
-    }
-
-    const response = await fetch(`${BACKEND_URL}/api/users/profile`, {
-      method: "PATCH",
-      headers: reqHeaders,
-      body: JSON.stringify(formData),
+    const response = await fetch(`${BACKEND_URL}/api/user/update`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, name, email, image }),
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      return { success: false, error: data.message || data.error || "Failed to update profile" };
-    }
-
-    revalidatePath("/profile");
-    return { success: true, data };
-  } catch (error: any) {
-    console.error("Server Action updateUserProfile error:", error);
-    return { success: false, error: error.message || "Something went wrong on the server" };
+    return await response.json();
+  } catch (error) {
+    console.error("Error in updateProfile:", error);
+    return { success: false, message: "Failed to update profile" };
   }
 }
 export async function getArticleStats() {
@@ -101,6 +96,18 @@ export async function getArticleStats() {
     console.error("Server Action getArticleStats error:", error);
     return null;
   }
+}
+
+export async function toggleBookmark(articleId: string, userId: string) {
+  const backendUrl = process.env.SERVER_URL || "http://localhost:5001";
+  
+  const res = await fetch(`${backendUrl}/api/articles/bookmark`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, articleId }),
+  });
+
+  return res.ok ? res.json() : null;
 }
 
 export async function createArticle(payload: any) {
@@ -373,17 +380,19 @@ export async function aiChat(messages: any[], articleId?: string) {
   }
 }
 
-export async function toggleBookmark(articleId: string) {
-  try {
-    const { reqHeaders } = await getAuthHeaders();
-    const res = await fetch(`${BACKEND_URL}/api/articles/${articleId}/bookmark`, {
-      method: "POST",
-      headers: reqHeaders,
-    });
-    if (!res.ok) throw new Error("Failed to toggle bookmark");
-    return await res.json();
-  } catch (error) {
-    console.error("Server Action toggleBookmark error:", error);
-    return { error: "Network error" };
-  }
-}
+// export async function toggleBookmark(articleId: string) {
+//   try {
+//     const { reqHeaders } = await getAuthHeaders();
+//     const res = await fetch(`${BACKEND_URL}/api/articles/${articleId}/bookmark`, {
+//       method: "POST",
+//       headers: reqHeaders,
+//     });
+//     if (!res.ok) throw new Error("Failed to toggle bookmark");
+//     return await res.json();
+//   } catch (error) {
+//     console.error("Server Action toggleBookmark error:", error);
+//     return { error: "Network error" };
+//   }
+// }
+
+

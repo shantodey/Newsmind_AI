@@ -14,14 +14,26 @@ export const auth = betterAuth({
     requireEmailVerification: false,
   },
   session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
-    updateAge: 60 * 60 * 24,     // refresh if older than 1 day
+    expiresIn: 60 * 60 * 24 * 7, 
+    updateAge: 60 * 60 * 24,     
   },
   user: {
     additionalFields: {
       role: {
         type: "string",
         defaultValue: "user",
+        input: false,
+      },
+      // Bookmarks Field (String Array)
+      bookmarks: {
+        type: "string[]",
+        defaultValue: [],
+        input: false,
+      },
+      // Liked Posts Field (String Array)
+      likedPosts: {
+        type: "string[]",
+        defaultValue: [],
         input: false,
       },
     },
