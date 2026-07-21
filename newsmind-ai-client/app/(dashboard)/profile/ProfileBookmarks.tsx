@@ -22,11 +22,13 @@ export function ProfileBookmarks({
   onCountChange?: (count: number) => void;
 }) {
   const { data: session, isPending } = authClient.useSession();
-  const user = session?.user as
-    | (typeof session.user & { bookmarks?: string[] })
-    | undefined;
+type SessionUser = NonNullable<typeof session>["user"] & {
+  bookmarks?: string[];
+};
 
-  const userBookmarkIds = user?.bookmarks ?? [];
+const user = session?.user as SessionUser | undefined;
+
+const userBookmarkIds = user?.bookmarks ?? [];
 
   const [bookmarks, setBookmarks] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
