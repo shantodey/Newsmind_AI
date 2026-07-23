@@ -10,7 +10,8 @@ import {
   FaPaperPlane,
 } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
-
+import logo from '@/components/logo.png';
+import Image from "next/image";
 export function Footer() {
   const [email, setEmail] = React.useState("");
   const [subscribed, setSubscribed] = React.useState(false);
@@ -59,14 +60,11 @@ export function Footer() {
         <div className="xl:grid xl:grid-cols-3 xl:gap-8">
           {/* Brand Info & Newsletter */}
           <div className="space-y-6 xl:col-span-1">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-950">
-                <FaRegLightbulb className="size-4.5" />
-              </div>
-              <span className="text-lg font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
-                NewsMind<span className="text-teal-600 dark:text-teal-400">.AI</span>
-              </span>
-            </Link>
+           <Link href="/"  className="group flex items-center p-1 transition-all duration-300">
+            <div className="relative flex h-15 w-15 items-center justify-center overflow-hidden rounded-xl  ring-1 ring-border transition-all duration-300 ">
+              <Image src={logo}  alt="NewsMind.ai Logo"  width={100}  height={100}  priority  className="h-15 w-15 object-contain" />
+            </div>
+          </Link>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-xs">
               Agentic news analysis, summaries, sentiment modeling, and recommendations. Read less, understand more.
             </p>

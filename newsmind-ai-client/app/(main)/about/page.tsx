@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
+import logo from '@/components/logo.png';
 import {
-  FaRegLightbulb,
   FaBrain,
   FaRobot,
   FaNewspaper,
@@ -59,12 +59,11 @@ export default function AboutPage() {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(20,184,166,0.12),transparent)]" />
           <div className="relative mx-auto max-w-4xl text-center space-y-6">
             <div className="flex items-center justify-center gap-2.5">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-50 text-zinc-900 shadow-sm">
-                <FaRegLightbulb className="size-6" />
-              </div>
-              <span className="text-2xl font-extrabold tracking-tight text-white">
-                NewsMind<span className="text-teal-400">.AI</span>
-              </span>
+              <Link href="/" className="group flex items-center  transition-all duration-300">
+                <div className="relative flex h-15 w-15 items-center justify-center overflow-hidden rounded-xl  ring-1 ring-border transition-all duration-300 ">
+                  <Image src={logo} alt="NewsMind.ai Logo" width={100} height={100} priority className="h-15 w-15 object-contain" />
+                </div>
+              </Link>
             </div>
             <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
               We believe everyone deserves<br />
@@ -193,7 +192,7 @@ export default function AboutPage() {
               </Link>
             </div>
           </div>
-          
+
         </section>
       </main>
       <Footer />

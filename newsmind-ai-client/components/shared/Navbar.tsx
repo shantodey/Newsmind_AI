@@ -3,19 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  FaMagnifyingGlass,
-  FaBell,
-  FaBars,
-  FaXmark,
-  FaRegLightbulb,
-  FaUser,
-  FaArrowRightFromBracket,
-  FaFolderOpen,
-} from "react-icons/fa6";
+import { FaMagnifyingGlass, FaBars, FaXmark, FaUser, FaArrowRightFromBracket, FaFolderOpen } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import { useSession, signOut } from "@/lib/auth-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import logo from '@/components/logo.png';
+import Image from "next/image";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -46,13 +39,10 @@ export function Navbar() {
       <div className="mx-auto flex max-w-7xl h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-950 shadow-sm">
-              <FaRegLightbulb className="size-5" />
+          <Link href="/"  className="group flex items-center p-1 transition-all duration-300">
+            <div className="relative flex h-15 w-15 items-center justify-center overflow-hidden rounded-xl  ring-1 ring-border transition-all duration-300 ">
+              <Image src={logo}  alt="NewsMind.ai Logo"  width={100}  height={100}  priority  className="h-15 w-15 object-contain" />
             </div>
-            <span className="text-xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
-              NewsMind<span className="text-teal-600 dark:text-teal-400">.AI</span>
-            </span>
           </Link>
 
           {/* Desktop Nav links */}
@@ -63,11 +53,10 @@ export function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`text-sm font-semibold transition-colors hover:text-zinc-900 dark:hover:text-zinc-50 ${
-                    isActive
+                  className={`text-sm font-semibold transition-colors hover:text-zinc-900 dark:hover:text-zinc-50 ${isActive
                       ? "text-zinc-900 dark:text-zinc-50 border-b-2 border-teal-500 py-1"
                       : "text-zinc-500 dark:text-zinc-400"
-                  }`}
+                    }`}
                 >
                   {link.label}
                 </Link>
@@ -212,11 +201,10 @@ export function Navbar() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900 ${
-                    isActive
+                  className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900 ${isActive
                       ? "text-teal-600 dark:text-teal-400 bg-teal-50/30 dark:bg-teal-950/15"
                       : "text-zinc-500 dark:text-zinc-400"
-                  }`}
+                    }`}
                 >
                   {link.label}
                 </Link>
