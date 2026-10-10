@@ -52,7 +52,7 @@ const categoryColors: Record<string, string> = {
 export default function AboutPage() {
   return (
     <>
-      <Navbar />
+
       <main className="bg-zinc-50 dark:bg-zinc-950">
         {/* Hero */}
         <section className="relative overflow-hidden bg-zinc-900 py-20 px-4 sm:px-6 lg:px-8">
@@ -195,7 +195,7 @@ export default function AboutPage() {
 
         </section>
       </main>
-      <Footer />
+     
     </>
   );
 }

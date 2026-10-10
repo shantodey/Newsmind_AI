@@ -5,8 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { getArticles } from "@/lib/actions/articles";
 import { FaRegClock, FaPlay, FaRegLightbulb } from "react-icons/fa6";
-import { Navbar } from "@/components/shared/Navbar";
-import { Footer } from "@/components/shared/Footer";
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import { CategoryPill } from "@/components/shared/CategoryPill";
 import { ArticleCard, Article } from "@/components/shared/ArticleCard";
@@ -70,7 +68,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-50 antialiased">
-      <Navbar />
+
 
       {/* Hero section */}
       <section className="relative w-full overflow-hidden bg-zinc-900 py-12 md:py-20 text-white">
@@ -258,7 +256,6 @@ export default function Home() {
         </section>
       </main>
 
-      <Footer />
     </div>
   );
 }

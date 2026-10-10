@@ -13,8 +13,6 @@ import {
 } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Navbar } from "@/components/shared/Navbar";
-import { Footer } from "@/components/shared/Footer";
 
 type ContactValues = { name: string; email: string; subject: string; message: string };
 
@@ -48,7 +46,7 @@ export default function ContactPage() {
 
   return (
     <>
-      <Navbar />
+
       <main className="bg-zinc-50 dark:bg-zinc-950">
         {/* Hero */}
         <section className="bg-zinc-900 py-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
@@ -201,7 +199,7 @@ export default function ContactPage() {
           </div>
         </div>
       </main>
-      <Footer />
+
     </>
   );
 }

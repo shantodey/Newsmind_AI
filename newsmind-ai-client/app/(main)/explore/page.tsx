@@ -10,8 +10,6 @@ import {
   FaRegClock,
 } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
-import { Navbar } from "@/components/shared/Navbar";
-import { Footer } from "@/components/shared/Footer";
 import { ArticleCard, type Article } from "@/components/shared/ArticleCard";
 import { getArticles } from "@/lib/actions/articles";
 import { useEffect, useMemo, useState } from "react";
@@ -134,7 +132,7 @@ export default function ExplorePage() {
 
   return (
     <>
-      <Navbar />
+  
       <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
         <section className="bg-zinc-900 py-12 px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-4xl text-center space-y-5">
@@ -302,7 +300,7 @@ export default function ExplorePage() {
           )}
         </div>
       </main>
-      <Footer />
+      
     </>
   );
 }

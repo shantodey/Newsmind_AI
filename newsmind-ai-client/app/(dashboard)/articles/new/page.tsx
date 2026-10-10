@@ -6,8 +6,7 @@ import { useForm, Controller } from "react-hook-form";
 import { FaArrowLeft, FaImage, FaRobot, FaCircleCheck, FaTag, FaXmark, FaTriangleExclamation } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Navbar } from "@/components/shared/Navbar";
-import { Footer } from "@/components/shared/Footer";
+
 import { uploadToImageBB } from "@/lib/imagebb";
 import { createArticle } from "@/lib/actions/articles";
 import { generateAiTagsAndSummary } from "@/lib/actions/ai";
@@ -140,7 +139,7 @@ const onSubmit = async (data: ArticleFormValues) => {
   if (submitted) {
     return (
       <>
-        <Navbar />
+
         <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center p-6">
           <div className="text-center space-y-6 max-w-md">
             <div className="flex size-20 items-center justify-center rounded-full bg-teal-50 dark:bg-teal-950/30 mx-auto">
@@ -158,14 +157,13 @@ const onSubmit = async (data: ArticleFormValues) => {
             </div>
           </div>
         </main>
-        <Footer />
+
       </>
     );
   }
 
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
           {/* Header */}
@@ -371,7 +369,6 @@ const onSubmit = async (data: ArticleFormValues) => {
           </form>
         </div>
       </main>
-      <Footer />
     </>
   );
 }

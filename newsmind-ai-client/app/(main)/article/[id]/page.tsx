@@ -4,14 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
-import {
-  FaRegClock,
-  FaRegCalendar,
-  FaRegEye,
-  FaRobot,
-  FaHeart,
-  FaLink,
-} from "react-icons/fa6";
+import { FaRegClock, FaRegCalendar, FaRegEye, FaRobot, FaHeart, FaLink } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
@@ -26,30 +19,35 @@ import { useEffect, useState } from "react";
 const FALLBACK_ARTICLE_IMAGE = "https://images.unsplash.com/photo-1551958219-acbc595e6d88?w=1400";
 const FALLBACK_AVATAR = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100";
 
-const SIDEBAR_TOP_POSTS = [
-  {
-    id: "p1",
-    title: "The Wearable Revolution: How Biometric Sensors Changed Pro Training",
-    imageUrl: "https://images.unsplash.com/photo-1576678927484-cc907957088c?w=200&h=200&fit=crop",
-    category: "Health",
-    readTime: "5 min",
-  },
-  {
-    id: "p2",
-    title: "Data Brokers in the Locker Room: Privacy in Modern Sport",
-    imageUrl: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=200&h=200&fit=crop",
-    category: "Tech",
-    readTime: "6 min",
-  },
-];
+function normalizeArticle(a: any) {
+  return {
+    id: a?.id || a?._id || "",
+    title: a?.title || "Untitled",
+    excerpt: a?.excerpt || "",
+    content: a?.content || "",
+    category: a?.category || "General",
+    imageUrl: a?.imageUrl || FALLBACK_ARTICLE_IMAGE,
+    publishedAt: a?.publishedAt || new Date().toLocaleDateString(),
+    readTime: a?.readTime || "5 min",
+    views: a?.views || 0,
+    likes: a?.likes || 0,
+    sentiment: a?.sentiment || "neutral",
+    sentimentScore: a?.sentimentScore || 0.5,
+    tags: a?.tags || [],
+    author: {
+      name: a?.author?.authorName || a?.author?.name || "NewsMind Agent",
+      avatar: a?.author?.authorImage || a?.author?.avatar || FALLBACK_AVATAR,
+      bio: a?.author?.bio || "Staff writer",
+      role: a?.author?.role || "Author",
+      followers: a?.author?.followers || 100,
+    },
+  };
+}
 
 function ShareBar() {
   const handleCopy = () => navigator.clipboard.writeText(window.location.href);
   return (
-    <button
-      onClick={handleCopy}
-      className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 px-2.5 py-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 transition-all cursor-pointer"
-    >
+    <button onClick={handleCopy} className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 px-2.5 py-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 transition-all cursor-pointer">
       <FaLink className="size-3.5" /> <span>Copy link</span>
     </button>
   );
@@ -68,65 +66,27 @@ export default function ArticleDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    setIsLoading(true);
+    let cancelled = false;
 
     getArticleById(id)
-      .then((data) => {
-        if (!data) return;
-        setArticle({
-          id: data.id || data._id,
-          title: data.title,
-          excerpt: data.excerpt,
-          content: data.content,
-          category: data.category || "General",
-          subcategory: data.subcategory || "News",
-          imageUrl: data.imageUrl && data.imageUrl.trim() !== "" ? data.imageUrl : FALLBACK_ARTICLE_IMAGE,
-          publishedAt: data.publishedAt || new Date().toLocaleDateString(),
-          readTime: data.readTime || "5 min",
-          views: data.views || 0,
-          commentCount: data.commentCount || 0,
-          likes: data.likes || 0,
-          sentiment: data.sentiment || "neutral",
-          sentimentScore: data.sentimentScore || 0.5,
-          author: {
-            name: data.author?.name || "NewsMind Agent",
-            avatar: data.author?.avatar && data.author.avatar.trim() !== "" ? data.author.avatar : FALLBACK_AVATAR,
-            bio: data.author?.bio || "Staff writer",
-            role: data.author?.role || "Author",
-            followers: data.author?.followers || 100,
-          },
-          tags: data.tags || [],
-        });
-      })
-      .catch(console.error)
-      .finally(() => setIsLoading(false));
+      .then((data) => !cancelled && setArticle(normalizeArticle(data)))
+      .catch((err) => console.error("Article fetch failed:", err))
+      .finally(() => !cancelled && setIsLoading(false));
 
     aiRecommendations()
-      .then((data) => {
-        setRecommendations(
-          (data ?? []).slice(0, 3).map((a: any) => ({
-            id: a.id || a._id,
-            title: a.title,
-            imageUrl: a.imageUrl && a.imageUrl.trim() !== "" ? a.imageUrl : FALLBACK_ARTICLE_IMAGE,
-            category: a.category || "General",
-            readTime: a.readTime || "5 min",
-          }))
-        );
-      })
-      .catch((err) => console.error("Error loading recommendations:", err));
+      .then((data) => !cancelled && setRecommendations((data || []).slice(0, 3)))
+      .catch(() => !cancelled && setRecommendations([]));
+
+    return () => { cancelled = true; };
   }, [id]);
 
   const handleLikeClick = async () => {
-    if (!isLoggedIn) {
-      router.push("/login");
-      return;
-    }
+    if (!isLoggedIn) return router.push("/login");
     if (!article?.id) return;
-    setArticle((prev: any) => ({ ...prev, likes: (prev.likes || 0) + 1 }));
+
+    setArticle((p: any) => ({ ...p, likes: (p.likes || 0) + 1 }));
     const res = await likeArticle(article.id);
-    if (res?.likes !== undefined) {
-      setArticle((prev: any) => ({ ...prev, likes: res.likes }));
-    }
+    if (res?.likes !== undefined) setArticle((p: any) => ({ ...p, likes: res.likes }));
   };
 
   if (isLoading) {
@@ -150,15 +110,13 @@ export default function ArticleDetailPage() {
 
   return (
     <>
-      <Navbar />
+
       <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
         <div className="relative w-full h-[52vh] min-h-[360px] max-h-[560px] overflow-hidden">
           <Image src={article.imageUrl} alt={article.title} fill priority sizes="100vw" className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-zinc-900/40 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 px-4 sm:px-6 lg:px-8 pb-8 max-w-7xl mx-auto">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white leading-tight tracking-tight max-w-4xl">
-              {article.title}
-            </h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white leading-tight tracking-tight max-w-4xl">{article.title}</h1>
           </div>
         </div>
 
@@ -175,7 +133,6 @@ export default function ArticleDetailPage() {
                     <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">{article.author.role}</p>
                   </div>
                 </div>
-
                 <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                   <span className="flex items-center gap-1.5"><FaRegCalendar /> {article.publishedAt}</span>
                   <span className="w-px h-4 bg-zinc-200 dark:bg-zinc-700" />
@@ -188,10 +145,7 @@ export default function ArticleDetailPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-2 flex-wrap">
                   <ShareBar />
-                  <button
-                    onClick={handleLikeClick}
-                    className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 px-2.5 py-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 hover:text-rose-500 hover:border-rose-200 transition-all cursor-pointer"
-                  >
+                  <button onClick={handleLikeClick} className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 px-2.5 py-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 hover:text-rose-500 hover:border-rose-200 transition-all cursor-pointer">
                     <FaHeart className="size-3.5 text-rose-500" />
                     <span>{(article.likes || 0).toLocaleString()} Likes</span>
                   </button>
@@ -201,61 +155,34 @@ export default function ArticleDetailPage() {
                 </Button>
               </div>
 
-              {showAiPanel && (
-                <AiInsightPanel onClose={() => setShowAiPanel(false)} articleId={article.id} content={article.content} />
-              )}
+              {showAiPanel && <AiInsightPanel onClose={() => setShowAiPanel(false)} articleId={article.id} content={article.content} />}
 
-              <p className="text-lg font-semibold text-zinc-700 dark:text-zinc-300 leading-relaxed border-l-4 border-teal-500 pl-5 py-1">
-                {article.excerpt}
-              </p>
+              <p className="text-lg font-semibold text-zinc-700 dark:text-zinc-300 leading-relaxed border-l-4 border-teal-500 pl-5 py-1">{article.excerpt}</p>
 
               <div className="text-base text-zinc-700 dark:text-zinc-300 leading-8 space-y-5">
-                {typeof article.content === "string"
-                  ? article.content.split("\n\n").map((para: string, idx: number) => <p key={idx}>{para}</p>)
-                  : <p>{article.content}</p>}
+                {article.content.split("\n\n").map((para: string, idx: number) => <p key={idx}>{para}</p>)}
               </div>
 
-              <div className="flex flex-wrap gap-2 pt-2 border-t border-zinc-200 dark:border-zinc-800">
-                {article.tags.map((tag: string) => (
-                  <Link
-                    key={tag}
-                    href={`/explore?tag=${encodeURIComponent(tag)}`}
-                    className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800 px-3 py-1 text-xs font-semibold text-zinc-600 dark:text-zinc-300"
-                  >
-                    #{tag}
-                  </Link>
-                ))}
-              </div>
+              {article.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                  {article.tags.map((tag: string) => (
+                    <Link key={tag} href={`/explore?tag=${encodeURIComponent(tag)}`} className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800 px-3 py-1 text-xs font-semibold text-zinc-600 dark:text-zinc-300">#{tag}</Link>
+                  ))}
+                </div>
+              )}
 
-              <div className="pt-4">
-                <CommentSection articleId={article.id} />
-              </div>
+              <CommentSection articleId={article.id} />
             </article>
 
             <aside className="hidden lg:block">
-              <div className="sticky top-24 space-y-8">
-                <ArticleSidebar
-                  articleId={article.id}
-                  author={{
-                    name: article.author.name,
-                    avatar: article.author.avatar,
-                    bio: article.author.bio,
-                    followers: article.author.followers || 0,
-                  }}
-                  tags={article.tags}
-                  topPosts={recommendations.length > 0 ? recommendations : SIDEBAR_TOP_POSTS}
-                  likesCount={article.likes}
-                  onTriggerAi={() => {
-                    setShowAiPanel(true);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                />
+              <div className="sticky top-24">
+                <ArticleSidebar articleId={article.id} author={article.author} tags={article.tags} topPosts={recommendations} likesCount={article.likes} onTriggerAi={() => { setShowAiPanel(true); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
               </div>
             </aside>
           </div>
         </div>
       </main>
-      <Footer />
+     
     </>
   );
 }

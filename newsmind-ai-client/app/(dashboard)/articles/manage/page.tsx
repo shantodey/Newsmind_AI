@@ -10,8 +10,7 @@ import {
 } from "react-icons/fa6";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Navbar } from "@/components/shared/Navbar";
-import { Footer } from "@/components/shared/Footer";
+
 import {
   getArticleStats,
   getAllArticlesForManage,
@@ -119,7 +118,7 @@ export default function ManageArticlesPage() {
 
   return (
     <>
-      <Navbar />
+
       <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-6">
           {/* Header */}
@@ -283,7 +282,6 @@ export default function ManageArticlesPage() {
         </div>
       )}
 
-      <Footer />
     </>
   );
 }

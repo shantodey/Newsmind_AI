@@ -89,13 +89,7 @@ export function ArticleCard({ article,onSelectForAi,className = "",}: ArticleCar
     >
       {/* Image container */}
       <div className="relative aspect-video w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900">
-        <Image 
-          src={validImageUrl} 
-          alt={article?.title || "News Image"} 
-          fill 
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        <Image   src={validImageUrl}   alt={article?.title || "News Image"}   fill   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"  className="object-cover transition-transform duration-500 group-hover:scale-105"/>
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
           <Badge className="bg-zinc-900/90 text-zinc-50 border-none shadow-sm dark:bg-zinc-100 dark:text-zinc-900">
             {article?.category || "General"}
@@ -125,9 +119,7 @@ export function ArticleCard({ article,onSelectForAi,className = "",}: ArticleCar
 
         {/* AI Metrics Overlay */}
         <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border ${sentiment.color}`}
-          >
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border ${sentiment.color}`}>
             {sentiment.icon}
             <span>
               {sentiment.label} ({Math.round((article?.sentimentScore || 0) * 100)}%)
@@ -135,10 +127,7 @@ export function ArticleCard({ article,onSelectForAi,className = "",}: ArticleCar
           </span>
 
           {onSelectForAi && (
-            <button
-              onClick={() => onSelectForAi(article)}
-              className="text-xs font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors"
-            >
+            <button  onClick={() => onSelectForAi(article)} className="text-xs font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors">
               Analyze AI
             </button>
           )}

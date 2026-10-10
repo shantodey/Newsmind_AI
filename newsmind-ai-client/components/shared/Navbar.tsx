@@ -19,6 +19,7 @@ export function Navbar() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [profileDropdownOpen, setProfileDropdownOpen] = React.useState(false);
 
+
   const navLinks = [
     { label: "Home", href: "/" },
     { label: "Explore", href: "/explore" },
@@ -33,7 +34,8 @@ export function Navbar() {
 
   const user = session?.user;
   const isAdmin = (user as { role?: string } | undefined)?.role === "admin";
-
+  console.log(user);
+  
   return (
     <header className="sticky top-0 z-50 w-full border-b border-zinc-100 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/80">
       <div className="mx-auto flex max-w-7xl h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
