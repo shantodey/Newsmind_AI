@@ -111,8 +111,6 @@ const isAlreadyBookmarked =
     return;
   }
 
-  if (isAlreadyBookmarked) return;
-
   const res = await toggleBookmark(articleId, userId);
 
   if (res && typeof res.bookmarked === "boolean") {
@@ -158,21 +156,21 @@ const isAlreadyBookmarked =
           {/* Bookmark Button */}
           <button
             onClick={handleBookmarkToggle}
-            disabled={isButtonDisabled}
+            disabled={!isLoggedIn}
             className={`flex flex-col items-center gap-1 transition-colors ${!isLoggedIn
-              ? "text-zinc-400 cursor-not-allowed opacity-50" // ১. লগইন না থাকলে গ্রে ও নট-ক্লিকেবল
-              : isAlreadyBookmarked
-                ? "text-emerald-600 cursor-default"             // ২. বুকমার্ক করা থাকলে গ্রিন ও নট-ক্লিকেবল
-                : "text-zinc-500 hover:text-teal-600 cursor-pointer" // নরমাল স্টেট
+              ? "text-zinc-400 cursor-not-allowed opacity-50"
+              : isBookmarked
+                ? "text-teal-600 hover:text-rose-500 cursor-pointer"
+                : "text-zinc-500 hover:text-teal-600 cursor-pointer"
               }`}
           >
-            {isAlreadyBookmarked ? (
-              <FaBookmark className="size-5 text-emerald-600" />
+            {isBookmarked ? (
+              <FaBookmark className="size-5 text-teal-600" />
             ) : (
               <FaRegBookmark className="size-5" />
             )}
             <span className="text-[10px] font-bold">
-              {isAlreadyBookmarked ? "Saved" : "Bookmark"}
+              {isBookmarked ? "Saved" : "Bookmark"}
             </span>
           </button>
 

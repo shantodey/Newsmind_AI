@@ -53,7 +53,16 @@ export async function updateUserProfile(req: Request, res: Response) {
 
 export async function getUserBookmarks(req: Request, res: Response) {
   try {
-    const { bookmarkIds } = req.body;
+    let { bookmarkIds, userId } = req.body;
+
+    if ((!bookmarkIds || !Array.isArray(bookmarkIds) || bookmarkIds.length === 0) && userId) {
+      const filter = ObjectId.isValid(userId) ? { _id: new ObjectId(userId) } : { _id: userId };
+      const u = await userCollection.findOne(filter) || await db.collection("users").findOne(filter);
+      if (u?.bookmarks && Array.isArray(u.bookmarks)) {
+        bookmarkIds = u.bookmarks;
+      }
+    }
+
     if (!bookmarkIds || !Array.isArray(bookmarkIds) || bookmarkIds.length === 0) {
       return res.json({ bookmarks: [] });
     }

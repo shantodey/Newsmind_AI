@@ -36,13 +36,13 @@ export async function requestJournalist(userId: string) {
   }
 }
 
-export async function getUserBookmarks(bookmarkIds: string[]) {
+export async function getUserBookmarks(bookmarkIds: string[] = [], userId?: string) {
   const res = await fetch(`${BACKEND_URL}/api/users/bookmarks`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ bookmarkIds }),
+    body: JSON.stringify({ bookmarkIds, userId }),
   });
 
   if (!res.ok) {

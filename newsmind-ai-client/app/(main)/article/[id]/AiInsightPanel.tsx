@@ -1,9 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { FaBrain, FaRobot } from "react-icons/fa6";
+import { FaBrain, FaRobot, FaBookmark, FaRegBookmark } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import { aiSummarize, aiSentiment } from "@/lib/actions/ai";
+import { toggleBookmark } from "@/lib/actions/interactions";
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const SENTIMENT_COLOR: Record<string, string> = {
   positive: "text-emerald-600 dark:text-emerald-400",
@@ -20,9 +24,32 @@ export function AiInsightPanel({
   articleId: string;
   content: string;
 }) {
+  const router = useRouter();
+  const { data: session } = authClient.useSession();
+  const user = session?.user as (NonNullable<typeof session>["user"] & { bookmarks?: string[] }) | undefined;
+  const userId = user?.id;
+
   const [phase, setPhase] = useState<"idle" | "loading" | "done">("idle");
   const [summary, setSummary] = useState<any>(null);
   const [sentiment, setSentiment] = useState<any>(null);
+  const [isBookmarked, setIsBookmarked] = useState<boolean>(
+    Boolean(articleId && user?.bookmarks?.includes(articleId))
+  );
+
+  const handleBookmarkToggle = async () => {
+    if (!userId) {
+      router.push("/login");
+      return;
+    }
+
+    const res = await toggleBookmark(articleId, userId);
+    if (res && typeof res.bookmarked === "boolean") {
+      setIsBookmarked(res.bookmarked);
+      toast.success(res.bookmarked ? "Bookmarked!" : "Removed from bookmarks");
+    } else {
+      toast.error("Failed to update bookmark");
+    }
+  };
 
   const handleAnalyze = async () => {
     setPhase("loading");
@@ -49,12 +76,31 @@ export function AiInsightPanel({
             NewsMind AI Analysis
           </h3>
         </div>
-        <button
-          onClick={onClose}
-          className="text-xs font-bold text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors cursor-pointer"
-        >
-          ✕ Close
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleBookmarkToggle}
+            aria-label="Toggle Bookmark"
+            className="flex items-center gap-1.5 text-xs font-bold text-teal-800 dark:text-teal-200 hover:text-teal-950 transition-colors cursor-pointer bg-white/70 dark:bg-zinc-900/50 px-2.5 py-1 rounded-md border border-teal-200/60 dark:border-teal-800/50"
+          >
+            {isBookmarked ? (
+              <>
+                <FaBookmark className="size-3.5 text-teal-600" />
+                <span>Saved</span>
+              </>
+            ) : (
+              <>
+                <FaRegBookmark className="size-3.5" />
+                <span>Bookmark</span>
+              </>
+            )}
+          </button>
+          <button
+            onClick={onClose}
+            className="text-xs font-bold text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+          >
+            ✕ Close
+          </button>
+        </div>
       </div>
 
       {phase === "idle" && (

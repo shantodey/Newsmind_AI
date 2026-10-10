@@ -6,8 +6,6 @@ import { useParams, useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { FaRegClock, FaRegCalendar, FaRegEye, FaRobot, FaHeart, FaLink } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
-import { Navbar } from "@/components/shared/Navbar";
-import { Footer } from "@/components/shared/Footer";
 import { ArticleSidebar } from "@/components/shared/ArticleSidebar";
 import { CommentSection } from "@/components/shared/CommentSection";
 import { AiInsightPanel } from "./AiInsightPanel";
@@ -182,7 +180,7 @@ export default function ArticleDetailPage() {
           </div>
         </div>
       </main>
-     
+
     </>
   );
 }

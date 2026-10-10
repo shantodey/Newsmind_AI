@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { ObjectId } from "mongodb";
-import { articlesCollection, commentsCollection, usersCollection, db, analyticsCollection } from "../config/db";
+import { articlesCollection, commentsCollection, usersCollection, userCollection, db, analyticsCollection } from "../config/db";
 import { getAuthUser, getOrCreateUser, normalizeArticle } from "../utils/helpers";
 
 export async function getArticleStats(_req: Request, res: Response) {
@@ -172,14 +172,20 @@ export async function bookmarkArticleByBody(req: Request, res: Response) {
   if (!userId || !articleId) return res.status(400).json({ error: "Missing ids" });
 
   const filter = ObjectId.isValid(userId) ? { _id: new ObjectId(userId) } : { _id: userId };
-  const foundUser = await usersCollection.findOne(filter);
+  let targetColl = userCollection;
+  let foundUser = await targetColl.findOne(filter);
+
+  if (!foundUser) {
+    targetColl = usersCollection;
+    foundUser = await targetColl.findOne(filter);
+  }
 
   if (!foundUser) return res.status(404).json({ error: "User not found" });
 
-  const isBookmarked = foundUser.bookmarks?.includes(articleId);
+  const isBookmarked = Array.isArray(foundUser.bookmarks) && foundUser.bookmarks.includes(articleId);
   const update = isBookmarked ? { $pull: { bookmarks: articleId } } : { $addToSet: { bookmarks: articleId } };
 
-  await usersCollection.updateOne(filter, update);
+  await targetColl.updateOne(filter, update as any);
   res.json({ bookmarked: !isBookmarked });
 }
 
@@ -218,9 +224,17 @@ export async function toggleBookmark(req: Request, res: Response) {
         { _id: new ObjectId(userId) },
         { $pull: { bookmarks: articleId } } as any
       );
+      await userCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { $pull: { bookmarks: articleId } } as any
+      );
       return res.json({ bookmarked: false });
     } else {
       await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { $addToSet: { bookmarks: articleId } }
+      );
+      await userCollection.updateOne(
         { _id: new ObjectId(userId) },
         { $addToSet: { bookmarks: articleId } }
       );

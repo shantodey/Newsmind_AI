@@ -10,23 +10,79 @@ export async function summarize(req: Request, res: Response) {
 
     if (articleId) {
       const article = await articlesCollection.findOne({ _id: new ObjectId(articleId) });
-      if (article) content = article.content;
+      if (article) content = article.content || content;
     }
 
+    const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
+    if (apiKey && content.trim()) {
+      try {
+        const bulletCount = length === "short" ? 3 : length === "long" ? 6 : 4;
+        const prompt = `Analyze the article below and return a JSON object with:
+- "tldr": 1-2 sentence executive summary in the article's language.
+- "bulletPoints": An array of exactly ${bulletCount} key analytical bullet points.
+- "takeaways": An array of 3 practical takeaways.
+
+Article Content:
+${content.slice(0, 15000)}`;
+
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                  type: "OBJECT",
+                  properties: {
+                    tldr: { type: "STRING" },
+                    bulletPoints: { type: "ARRAY", items: { type: "STRING" } },
+                    takeaways: { type: "ARRAY", items: { type: "STRING" } }
+                  },
+                  required: ["tldr", "bulletPoints", "takeaways"]
+                }
+              },
+            }),
+          }
+        );
+
+        if (geminiRes.ok) {
+          const geminiData = await geminiRes.json();
+          const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (rawText) {
+            const parsed = JSON.parse(rawText.replace(/```json\s*|\s*```/g, "").trim());
+            if (parsed.tldr && parsed.bulletPoints) {
+              return res.json({
+                tldr: parsed.tldr,
+                bulletPoints: Array.isArray(parsed.bulletPoints) ? parsed.bulletPoints : [parsed.bulletPoints],
+                takeaways: Array.isArray(parsed.takeaways) ? parsed.takeaways : [],
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Gemini summarization failed, falling back to heuristic summary:", err);
+      }
+    }
+
+    // Fallback: Smart summary when API key is unavailable or rate-limited
     const sentences = content
-      .split(/[.!?]+/)
+      .split(/(?<=[.!?])\s+/)
       .map((s: string) => s.trim())
-      .filter((s: string) => s.length > 5);
-    const bulletCount = length === "short" ? 3 : length === "long" ? 7 : 5;
-    const bullets = sentences.slice(0, bulletCount).map((s: string) => `${s}.`);
+      .filter((s: string) => s.length > 20);
+    const bulletCount = length === "short" ? 3 : length === "long" ? 6 : 4;
+    const bullets = sentences.slice(0, bulletCount);
 
     res.json({
-      tldr: bullets.slice(0, 2).join(" "),
-      bulletPoints: bullets,
+      tldr: sentences.slice(0, 2).join(" ") || content.slice(0, 160) + "...",
+      bulletPoints: bullets.length ? bullets : [content.slice(0, 120) + "..."],
       takeaways: [
-        "AI models are moving from pilots to real workflows.",
-        "Ethics and trust remain central to adoption.",
-        "Automation is improving speed and consistency.",
+        "Key developments highlight evolving industry standards.",
+        "Operational factors and user feedback drive subsequent actions.",
+        "Follow updates as this story develops.",
       ],
     });
   } catch (error) {
@@ -34,6 +90,7 @@ export async function summarize(req: Request, res: Response) {
     res.status(500).json({ error: "Failed to summarize" });
   }
 }
+
 
 export async function chat(req: Request, res: Response) {
   try {
