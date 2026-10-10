@@ -17,4 +17,4 @@ export {
   aiSentiment,
   aiRecommendations,
   aiChat,
-} from "@/lib/server";
+} from "@/server";

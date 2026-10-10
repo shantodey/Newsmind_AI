@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
-import { getArticleStats, getAllArticlesForManage, deleteArticle, updateArticle } from "@/lib/server";
+import { getArticleStats, getAllArticlesForManage, deleteArticle, updateArticle } from "@/server";
 
 
 interface ArticleRow {

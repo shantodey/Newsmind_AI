@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { FaBrain, FaRobot } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
-import { aiSummarize, aiSentiment } from "@/lib/server";
+import { aiSummarize, aiSentiment } from "@/server";
 
 const SENTIMENT_COLOR: Record<string, string> = {
   positive: "text-emerald-600 dark:text-emerald-400",

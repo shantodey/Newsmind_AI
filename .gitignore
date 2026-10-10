@@ -13,6 +13,10 @@
 # testing
 /coverage
 
+#ai
+.agents
+PROJECT_CONTEXT.md
+
 # next.js
 /.next/
 /out/

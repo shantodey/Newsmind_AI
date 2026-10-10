@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { FaUser, FaCircleCheck, FaPen } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
-import { updateProfile } from "@/lib/server";
+import { updateProfile } from "@/server";
 import { Input } from "@base-ui/react/input";
 import { toast } from "sonner";
 

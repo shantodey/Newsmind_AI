@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { uploadToImageBB } from "@/lib/imagebb";
-import { createArticle, generateAiTagsAndSummary } from "@/lib/server";
+import { createArticle, generateAiTagsAndSummary } from "@/server";
 
 const CATEGORIES = ["Technology", "Sport", "Politics", "Business", "Science", "Health", "Entertainment", "World", "Climate", "AI"];
 

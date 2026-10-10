@@ -22,7 +22,7 @@ import {
   getArticleById,
   likeArticle,
   aiRecommendations,
-} from "@/lib/server";
+} from "@/server";
 import { useEffect, useState } from "react";
 
 const FALLBACK_ARTICLE_IMAGE = "https://images.unsplash.com/photo-1551958219-acbc595e6d88?w=1400";

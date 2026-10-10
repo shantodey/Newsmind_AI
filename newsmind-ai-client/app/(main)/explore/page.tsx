@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { ArticleCard, type Article } from "@/components/shared/ArticleCard";
-import { getArticles } from "@/lib/server";
+import { getArticles } from "@/server";
 
 const CATEGORIES = [
   "All", "Technology", "Sport", "Politics", "Business", "Science",
