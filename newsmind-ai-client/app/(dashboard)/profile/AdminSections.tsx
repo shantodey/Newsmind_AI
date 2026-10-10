@@ -15,7 +15,7 @@ export function AdminQuickActions() {
     {
       title: "Manage Articles",
       description: "Review, edit, publish or delete articles across all categories",
-      href: "/articles/manage",
+      href: "/profile",
       icon: FileText,
       badge: "Content",
       badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
@@ -23,7 +23,7 @@ export function AdminQuickActions() {
     {
       title: "Create New Article",
       description: "Write and publish breaking stories or save draft editorials",
-      href: "/articles/new",
+      href: "/profile",
       icon: PlusCircle,
       badge: "Publish",
       badgeColor: "bg-teal-50 text-teal-700 border-teal-200",

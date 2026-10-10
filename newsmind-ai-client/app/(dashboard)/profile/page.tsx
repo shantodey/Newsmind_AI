@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
+import {
   BookOpen, 
   Bookmark, 
-  PenLine, 
+  PenLine,
   CheckCircle2, 
   User as UserIcon,
   Sparkles,
@@ -12,12 +12,9 @@ import {
   FileText,
   Eye,
   Heart,
-  SlidersHorizontal,
-  Activity,
-  Layers,
-  Settings,
+  Users,
   ShieldAlert,
-  Users
+  Layers
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -27,8 +24,10 @@ import { getArticleStats } from "@/lib/actions/articles";
 import { ProfileBookmarks } from "./ProfileBookmarks";
 import { ProfileHistory } from "./ProfileHistory";
 import { AccountDetails } from "./ProfileForm";
-import { ContributorCard, ContributorApplicationDialog } from "./ContributorCard";
+import { ContributorCard } from "./ContributorCard";
 import { AdminQuickActions, AdminUserTable } from "./AdminSections";
+import { NewArticleContent } from "./NewArticleContent";
+import { ManageArticlesContent } from "./ManageArticlesContent";
 
 export default function ProfilePage() {
   const { data: session, isPending } = useSession();
@@ -53,6 +52,7 @@ export default function ProfilePage() {
   // Real database-backed role from session
   const userRole = (profileUser as any)?.role || "user";
   const isAdmin = userRole === "admin";
+  const isJournalist = userRole === "journalist";
 
   useEffect(() => {
     if (isAdmin) {
@@ -92,7 +92,9 @@ export default function ProfilePage() {
 
   const roleDisplay = isAdmin 
     ? "Admin" 
-    : userRole === "creator" || userRole === "journalist"
+    : isJournalist
+    ? "Journalist"
+    : userRole === "creator"
     ? "Contributor"
     : "Reader";
 
@@ -112,7 +114,15 @@ export default function ProfilePage() {
     ? [
         { id: "Profile", label: "Profile", icon: UserIcon },
         { id: "Users", label: "Users", icon: Users },
-        { id: "Management", label: "Management", icon: SlidersHorizontal },
+        { id: "Write", label: "Write Article", icon: PenLine },
+        { id: "Manage", label: "Manage Articles", icon: Layers },
+      ]
+    : isJournalist
+    ? [
+        { id: "Profile", label: "Profile", icon: UserIcon },
+        { id: "Write", label: "Write Article", icon: PenLine },
+        { id: "Bookmarks", label: "Bookmarks", icon: Bookmark, badge: bookmarksCount },
+        { id: "History", label: "History", icon: BookOpen, badge: historyCount },
       ]
     : [
         { id: "Profile", label: "Profile", icon: UserIcon },
@@ -351,7 +361,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Regular-User Only Tabs */}
+        {/* Bookmarks (user + journalist) */}
         {!isAdmin && activeTab === "Bookmarks" && (
           <div className="max-w-4xl mx-auto">
             <ProfileBookmarks onCountChange={setBookmarksCount} />
@@ -364,16 +374,23 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Administrator Only Tabs */}
+        {/* Write Article (journalist + admin) */}
+        {(isJournalist || isAdmin) && activeTab === "Write" && (
+          <div className="max-w-6xl mx-auto">
+            <NewArticleContent />
+          </div>
+        )}
+
+        {/* Admin Only Tabs */}
         {isAdmin && activeTab === "Users" && (
           <div className="max-w-4xl mx-auto space-y-6">
             <AdminUserTable />
           </div>
         )}
 
-        {isAdmin && activeTab === "Management" && (
-          <div className="max-w-4xl mx-auto space-y-6">
-            <AdminQuickActions />
+        {isAdmin && activeTab === "Manage" && (
+          <div className="max-w-6xl mx-auto">
+            <ManageArticlesContent />
           </div>
         )}
 
