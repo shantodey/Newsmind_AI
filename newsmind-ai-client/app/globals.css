@@ -4,6 +4,21 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Body Text Configuration */
+body {
+  font-family: 
+    var(--font-inter),              /* ১. ইংরেজি বা ল্যাটিন বর্ণমালার জন্য */
+    var(--font-noto-serif-bengali),  /* ২. বাংলা বর্ণমালার জন্য (Fallback) */
+    sans-serif;
+}
+
+/* Headings Configuration */
+h1, h2, h3, h4, h5, h6, p {
+  font-family: 
+    var(--font-inter),              /* ১. ইংরেজি হেডলাইনের জন্য */
+    var(--font-noto-serif-bengali),  /* ২. বাংলা হেডলাইনের জন্য (Fallback) */
+    serif;
+}
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

@@ -24,7 +24,7 @@ export interface Article {
   imageUrl: string;
   author: {
     name: string;
-    avatar: string;
+    image: string;
   };
   publishedAt: string;
   readTime: string;
@@ -43,11 +43,9 @@ interface ArticleCardProps {
 const DEFAULT_ARTICLE_IMAGE = "https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=600";
 const DEFAULT_AVATAR_IMAGE = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100";
 
-export function ArticleCard({
-  article,
-  onSelectForAi,
-  className = "",
-}: ArticleCardProps) {
+export function ArticleCard({ article,onSelectForAi,className = "",}: ArticleCardProps) {
+  console.log(article);
+  
   const [isLiked, setIsLiked] = React.useState(false);
   const [isBookmarked, setIsBookmarked] = React.useState(false);
 
@@ -56,8 +54,8 @@ export function ArticleCard({
     ? article.imageUrl 
     : DEFAULT_ARTICLE_IMAGE;
 
-  const validAvatarUrl = (typeof article?.author?.avatar === 'string' && article.author.avatar.trim() !== '') 
-    ? article.author.avatar 
+  const validAvatarUrl = (typeof article?.author?.image === 'string' && article.author.image.trim() !== '') 
+    ? article.author.image 
     : DEFAULT_AVATAR_IMAGE;
 
   const getSentimentDetails = (sentiment: "positive" | "neutral" | "negative") => {
@@ -115,10 +113,7 @@ export function ArticleCard({
           <span>{article?.publishedAt}</span>
         </div>
 
-        <Link
-          href={`/article/${article?.id}`}
-          className="mb-2 block group-hover:text-zinc-900 dark:group-hover:text-zinc-50"
-        >
+        <Link  href={`/article/${article?.id}`}  className="mb-2 block group-hover:text-zinc-900 dark:group-hover:text-zinc-50">
           <h3 className="line-clamp-2 text-lg font-bold leading-tight text-zinc-800 transition-colors dark:text-zinc-100 group-hover:underline decoration-zinc-400">
             {article?.title || "No Title Available"}
           </h3>

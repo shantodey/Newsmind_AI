@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import {
   FaMagnifyingGlass,
   FaSliders,
@@ -14,7 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { ArticleCard, type Article } from "@/components/shared/ArticleCard";
-import { getArticles } from "@/server";
+import { getArticles } from "@/lib/actions/articles";
+import { useEffect, useMemo, useState } from "react";
 
 const CATEGORIES = [
   "All", "Technology", "Sport", "Politics", "Business", "Science",
@@ -50,17 +50,17 @@ function SkeletonCard() {
 }
 
 export default function ExplorePage() {
-  const [query, setQuery] = React.useState("");
-  const [debouncedQuery, setDebouncedQuery] = React.useState("");
-  const [activeCategory, setActiveCategory] = React.useState("All");
-  const [activeSentiment, setActiveSentiment] = React.useState("All");
-  const [sortBy, setSortBy] = React.useState("newest");
-  const [page, setPage] = React.useState(1);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [filtersOpen, setFiltersOpen] = React.useState(false);
-  const [articles, setArticles] = React.useState<Article[]>([]);
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [activeSentiment, setActiveSentiment] = useState("All");
+  const [sortBy, setSortBy] = useState("newest");
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [articles, setArticles] = useState<Article[]>([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setIsLoading(true);
     getArticles(activeCategory)
       .then((data) => {
@@ -71,24 +71,30 @@ export default function ExplorePage() {
           content: a.content,
           category: a.category,
           readTime: a.readTime || "5 min",
-          publishedAt: a.createdAt?.["$date"] 
-            ? new Date(a.createdAt["$date"]).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-            : new Date(a.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+          publishedAt: new Date(a.createdAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
           imageUrl: a.imageUrl || "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800",
           likes: a.likes || 0,
           views: a.views || 0,
           sentiment: a.sentiment || "neutral",
-          author: a.author || { name: "NewsMind Agent", avatar: "" },
+          sentimentScore: a.sentimentScore || 0.5,
           tags: a.tags || [],
-          sentimentScore: a.sentimentScore || 0.5
+          author: typeof a.author === "string"
+            ? { name: a.author, image: "" }
+            : {
+              name: a.author?.authorName || "NewsMind Agent",
+              image: a.author?.authorImage || "",
+            },
         }));
         setArticles(dbArticles);
       })
       .catch((err) => console.error("Error fetching explore articles:", err))
       .finally(() => setIsLoading(false));
   }, [activeCategory]);
-
-  React.useEffect(() => {
+  useEffect(() => {
     const t = setTimeout(() => {
       setDebouncedQuery(query);
       setPage(1);
@@ -96,7 +102,7 @@ export default function ExplorePage() {
     return () => clearTimeout(t);
   }, [query]);
 
-  const filtered = React.useMemo(() => {
+  const filtered = useMemo(() => {
     let result = [...articles];
     if (debouncedQuery) {
       const q = debouncedQuery.toLowerCase();
@@ -140,18 +146,9 @@ export default function ExplorePage() {
             </p>
             <div className="relative max-w-2xl mx-auto">
               <FaMagnifyingGlass className="absolute top-1/2 -translate-y-1/2 left-4 size-4 text-zinc-400 pointer-events-none" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by title, topic, or keyword..."
-                className="w-full h-12 rounded-xl border border-zinc-700 bg-zinc-800 pl-12 pr-12 text-sm font-medium text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all"
-              />
+              <input  type="text"  value={query}  onChange={(e) => setQuery(e.target.value)}  placeholder="Search by title, topic, or keyword..." className="w-full h-12 rounded-xl border border-zinc-700 bg-zinc-800 pl-12 pr-12 text-sm font-medium text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all"/>
               {query && (
-                <button
-                  onClick={() => setQuery("")}
-                  className="absolute top-1/2 -translate-y-1/2 right-4 text-zinc-400 hover:text-white transition-colors"
-                >
+                <button  onClick={() => setQuery("")}  className="absolute top-1/2 -translate-y-1/2 right-4 text-zinc-400 hover:text-white transition-colors">
                   <FaXmark className="size-4" />
                 </button>
               )}
@@ -166,11 +163,10 @@ export default function ExplorePage() {
                 <button
                   key={cat}
                   onClick={() => { setActiveCategory(cat); setPage(1); }}
-                  className={`rounded-full px-3 py-1 text-xs font-bold transition-all ${
-                    activeCategory === cat
-                      ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900 shadow-sm"
-                      : "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-500"
-                  }`}
+                  className={`rounded-full px-3 py-1 text-xs font-bold transition-all ${activeCategory === cat
+                    ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900 shadow-sm"
+                    : "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-500"
+                    }`}
                 >
                   {cat}
                 </button>
@@ -178,10 +174,7 @@ export default function ExplorePage() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => setFiltersOpen((p) => !p)}
-                className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-              >
+              <button  onClick={() => setFiltersOpen((p) => !p)}  className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
                 <FaSliders className="size-3.5" />
                 Filters
               </button>
@@ -219,14 +212,13 @@ export default function ExplorePage() {
                     <button
                       key={s}
                       onClick={() => { setActiveSentiment(s); setPage(1); }}
-                      className={`rounded-full px-3 py-1 text-xs font-bold border transition-all ${
-                        activeSentiment === s
-                          ? s === "Positive" ? "bg-emerald-500 border-emerald-500 text-white"
-                            : s === "Negative" ? "bg-rose-500 border-rose-500 text-white"
+                      className={`rounded-full px-3 py-1 text-xs font-bold border transition-all ${activeSentiment === s
+                        ? s === "Positive" ? "bg-emerald-500 border-emerald-500 text-white"
+                          : s === "Negative" ? "bg-rose-500 border-rose-500 text-white"
                             : s === "Neutral" ? "bg-amber-500 border-amber-500 text-white"
-                            : "bg-zinc-900 border-zinc-900 text-white dark:bg-zinc-50 dark:border-zinc-50 dark:text-zinc-900"
-                          : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-zinc-400"
-                      }`}
+                              : "bg-zinc-900 border-zinc-900 text-white dark:bg-zinc-50 dark:border-zinc-50 dark:text-zinc-900"
+                        : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-zinc-400"
+                        }`}
                     >
                       {s}
                     </button>
@@ -251,21 +243,21 @@ export default function ExplorePage() {
             {isLoading
               ? Array.from({ length: PAGE_SIZE }).map((_, i) => <SkeletonCard key={i} />)
               : paginated.length > 0
-              ? paginated.map((article) => (
+                ? paginated.map((article) => (
                   <ArticleCard key={article.id} article={article} />
                 ))
-              : (
-                <div className="col-span-full flex flex-col items-center justify-center py-24 gap-4 text-center">
-                  <FaMagnifyingGlass className="size-12 text-zinc-300 dark:text-zinc-700" />
-                  <p className="text-lg font-bold text-zinc-500">No articles found</p>
-                  <p className="text-sm text-zinc-400 max-w-xs">
-                    Try different keywords or clear your filters.
-                  </p>
-                  <Button onClick={clearFilters} variant="outline" size="sm" className="rounded-lg cursor-pointer font-bold">
-                    Clear All Filters
-                  </Button>
-                </div>
-              )
+                : (
+                  <div className="col-span-full flex flex-col items-center justify-center py-24 gap-4 text-center">
+                    <FaMagnifyingGlass className="size-12 text-zinc-300 dark:text-zinc-700" />
+                    <p className="text-lg font-bold text-zinc-500">No articles found</p>
+                    <p className="text-sm text-zinc-400 max-w-xs">
+                      Try different keywords or clear your filters.
+                    </p>
+                    <Button onClick={clearFilters} variant="outline" size="sm" className="rounded-lg cursor-pointer font-bold">
+                      Clear All Filters
+                    </Button>
+                  </div>
+                )
             }
           </div>
 
@@ -283,11 +275,10 @@ export default function ExplorePage() {
                 <button
                   key={i}
                   onClick={() => setPage(i + 1)}
-                  className={`flex size-8 items-center justify-center rounded-full text-xs font-bold transition-all ${
-                    page === i + 1
-                      ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900 shadow-sm"
-                      : "border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                  }`}
+                  className={`flex size-8 items-center justify-center rounded-full text-xs font-bold transition-all ${page === i + 1
+                    ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900 shadow-sm"
+                    : "border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    }`}
                 >
                   {i + 1}
                 </button>

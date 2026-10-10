@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { getArticles } from "@/server";
+import { getArticles } from "@/lib/actions/articles";
 import { FaRegClock, FaPlay, FaRegLightbulb } from "react-icons/fa6";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";

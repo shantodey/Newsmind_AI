@@ -18,11 +18,9 @@ import { Footer } from "@/components/shared/Footer";
 import { ArticleSidebar } from "@/components/shared/ArticleSidebar";
 import { CommentSection } from "@/components/shared/CommentSection";
 import { AiInsightPanel } from "./AiInsightPanel";
-import {
-  getArticleById,
-  likeArticle,
-  aiRecommendations,
-} from "@/server";
+import { getArticleById } from "@/lib/actions/articles";
+import { likeArticle } from "@/lib/actions/interactions";
+import { aiRecommendations } from "@/lib/actions/ai";
 import { useEffect, useState } from "react";
 
 const FALLBACK_ARTICLE_IMAGE = "https://images.unsplash.com/photo-1551958219-acbc595e6d88?w=1400";

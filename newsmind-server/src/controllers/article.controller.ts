@@ -82,10 +82,10 @@ export async function getArticles(req: Request, res: Response) {
 
 export async function createArticle(req: Request, res: Response) {
   try {
-    const { title, excerpt, content, category, tags, imageUrl, status } = req.body;
+    const { title, content, category, tags, imageUrl, status } = req.body;
 
-    if (!title || !excerpt || !content || !category) {
-      return res.status(400).json({ error: "Title, excerpt, content, and category are required" });
+    if (!title || !content || !category) {
+      return res.status(400).json({ error: "Title, content, and category are required" });
     }
 
     const wordCount = String(content).trim().split(/\s+/).filter(Boolean).length;
@@ -94,20 +94,21 @@ export async function createArticle(req: Request, res: Response) {
 
     const result = await articlesCollection.insertOne({
       title,
-      excerpt,
       content,
       category,
       tags: tags || [],
       imageUrl: imageUrl || "",
-      author: req.headers["x-user-id"] || "system",
+      author: {
+        authorId: String(req.headers["x-user-id"] || "system"),
+        authorName: String(req.headers["x-user-name"] || "Unknown"),
+        authorImage: String(req.headers["x-user-img"] || ""),
+      },
       status: normalizedStatus,
       views: 0,
       likes: 0,
       sentiment: "neutral",
       sentimentScore: 0.5,
-      readTime,
       createdAt: new Date(),
-      updatedAt: new Date(),
     });
 
     const inserted = await articlesCollection.findOne({ _id: result.insertedId });

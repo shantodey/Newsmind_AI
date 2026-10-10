@@ -4,7 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { useSession } from "@/lib/auth-client";
-import { getComments, postComment } from "@/server";
+import { getComments, postComment } from "@/lib/actions/interactions";
 import {
   FaRegHeart,
   FaHeart,

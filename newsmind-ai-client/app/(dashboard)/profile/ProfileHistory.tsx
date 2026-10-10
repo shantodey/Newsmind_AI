@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FaChevronRight } from "react-icons/fa6";
 import { Badge } from "@/components/ui/badge";
-import { getArticles } from "@/server";
+import { getArticles } from "@/lib/actions/articles";
 
 export type HistoryItem = {
   id: string;

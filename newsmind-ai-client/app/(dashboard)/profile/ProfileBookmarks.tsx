@@ -5,7 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FaBookmark, FaRegClock, FaTrash } from "react-icons/fa6";
-import { getUserBookmarks, toggleBookmark } from "@/server";
+import { getUserBookmarks } from "@/lib/actions/user";
+import { toggleBookmark } from "@/lib/actions/interactions";
 import { authClient } from "@/lib/auth-client";
 
 interface Article {

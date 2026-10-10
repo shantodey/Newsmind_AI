@@ -1,26 +1,23 @@
 "use client";
 
-import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useForm, Controller } from "react-hook-form";
-import {
-  FaArrowLeft, FaImage, FaRobot, FaCircleCheck,
-  FaTag, FaXmark, FaTriangleExclamation,
-} from "react-icons/fa6";
+import { FaArrowLeft, FaImage, FaRobot, FaCircleCheck, FaTag, FaXmark, FaTriangleExclamation } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
 import { uploadToImageBB } from "@/lib/imagebb";
-import { createArticle, generateAiTagsAndSummary } from "@/server";
+import { createArticle } from "@/lib/actions/articles";
+import { generateAiTagsAndSummary } from "@/lib/actions/ai";
+import { useRef, useState } from "react";
+import { newArticleSchema } from "@/schema/created_article";
 
 const CATEGORIES = ["Technology", "Sport", "Politics", "Business", "Science", "Health", "Entertainment", "World", "Climate", "AI"];
 
 type ArticleFormValues = {
   title: string;
-  excerpt: string;
   content: string;
   category: string;
   status: "published" | "draft";
@@ -31,19 +28,19 @@ const MOCK_AI_TAGS = ["AI", "MachineLearning", "Technology", "DataScience", "Inn
 const MOCK_AI_SUMMARY = "This article explores the transformative impact of emerging technologies on modern industry. Key themes include automation, data-driven decision making, and the ethical considerations of AI deployment at scale.";
 
 export default function NewArticlePage() {
-  const [imageFile, setImageFile] = React.useState<File | null>(null);
-  const [imagePreview, setImagePreview] = React.useState<string>("");
-  const [uploading, setUploading] = React.useState(false);
-  const [uploadedUrl, setUploadedUrl] = React.useState("");
-  const [uploadError, setUploadError] = React.useState("");
-  const [tagInput, setTagInput] = React.useState("");
-  const [tags, setTags] = React.useState<string[]>([]);
-  const [aiLoading, setAiLoading] = React.useState(false);
-  const [aiSummary, setAiSummary] = React.useState("");
-  const [submitted, setSubmitted] = React.useState(false);
-  const [submitLoading, setSubmitLoading] = React.useState(false);
-  const [submitError, setSubmitError] = React.useState("");
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadedUrl, setUploadedUrl] = useState("");
+  const [uploadError, setUploadError] = useState("");
+  const [tagInput, setTagInput] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSummary, setAiSummary] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm<ArticleFormValues>({
     defaultValues: { status: "draft", category: "Technology" },
@@ -102,32 +99,43 @@ export default function NewArticlePage() {
   };
 
   // Submit using Server Action
-  const onSubmit = async (data: ArticleFormValues) => {
-    setSubmitLoading(true);
-    setSubmitError("");
-    try {
-      const payload = {
-        title: data.title,
-        excerpt: data.excerpt,
-        content: data.content,
-        category: data.category,
-        tags: tags,
-        imageUrl: uploadedUrl || imagePreview || "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800",
-        status: data.status,
-      };
+const onSubmit = async (data: ArticleFormValues) => {
+  setSubmitLoading(true);
+  setSubmitError("");
 
-      const result = await createArticle(payload);
-      if (result.error) {
-        throw new Error(result.error);
-      }
+  try {
+    const payload = {
+      title: data.title,
+      content: data.content,
+      category: data.category,
+      tags: tags,                                        
+      imageUrl:
+        uploadedUrl ||
+        imagePreview ||
+        "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800",
+      status: data.status,
+    };
 
-      setSubmitted(true);
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "An unexpected error occurred.");
-    } finally {
-      setSubmitLoading(false);
+    const parsed = newArticleSchema.safeParse(payload);
+    if (!parsed.success) {
+      // show the first human-readable error
+      throw new Error(parsed.error.issues[0]?.message || "Invalid article data");
     }
-  };
+
+    // use the validated + defaulted data (tags will be [] if empty)
+    const result = await createArticle(parsed.data);
+
+    if (result.error) {
+      throw new Error(result.error);
+    }
+
+    setSubmitted(true);
+  } catch (err) {
+    setSubmitError(err instanceof Error ? err.message : "An unexpected error occurred.");
+  } finally {
+    setSubmitLoading(false);
+  }
+};
 
   if (submitted) {
     return (
@@ -185,17 +193,6 @@ export default function NewArticlePage() {
                     {...register("title", { required: "Title is required", minLength: { value: 10, message: "Minimum 10 characters" } })}
                   />
                   {errors.title && <p className="text-xs font-medium text-rose-500">{errors.title.message}</p>}
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Excerpt / Summary *</label>
-                  <Textarea
-                    placeholder="A brief summary displayed in article cards and search results..."
-                    rows={2}
-                    className={`resize-none rounded-lg bg-zinc-50 dark:bg-zinc-900 text-sm font-medium focus:ring-2 focus:ring-teal-500/30 ${errors.excerpt ? "border-rose-400" : "border-zinc-200 dark:border-zinc-700"}`}
-                    {...register("excerpt", { required: "Excerpt is required", minLength: { value: 20, message: "At least 20 characters" } })}
-                  />
-                  {errors.excerpt && <p className="text-xs font-medium text-rose-500">{errors.excerpt.message}</p>}
                 </div>
               </div>
 
@@ -288,11 +285,10 @@ export default function NewArticlePage() {
                           <button
                             key={s} type="button"
                             onClick={() => field.onChange(s)}
-                            className={`rounded-lg py-2 text-xs font-bold capitalize transition-all ${
-                              field.value === s
+                            className={`rounded-lg py-2 text-xs font-bold capitalize transition-all ${field.value === s
                                 ? s === "published" ? "bg-teal-500 text-white" : "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                                 : "border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                            }`}
+                              }`}
                           >
                             {s}
                           </button>
