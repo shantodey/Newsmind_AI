@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { FaBrain, FaRobot, FaBookmark, FaRegBookmark } from "react-icons/fa6";
+import { FaBrain, FaRobot, FaBookmark, FaRegBookmark, FaHeart, FaRegHeart } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import { aiSummarize, aiSentiment } from "@/lib/actions/ai";
-import { toggleBookmark } from "@/lib/actions/interactions";
+import { toggleBookmark, likeArticle } from "@/lib/actions/interactions";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -19,14 +19,20 @@ export function AiInsightPanel({
   onClose,
   articleId,
   content,
+  likesCount = 0,
+  isLiked = false,
+  onLikeToggle,
 }: {
   onClose: () => void;
   articleId: string;
   content: string;
+  likesCount?: number;
+  isLiked?: boolean;
+  onLikeToggle?: () => void;
 }) {
   const router = useRouter();
   const { data: session } = authClient.useSession();
-  const user = session?.user as (NonNullable<typeof session>["user"] & { bookmarks?: string[] }) | undefined;
+  const user = session?.user as (NonNullable<typeof session>["user"] & { bookmarks?: string[]; likedPosts?: string[] }) | undefined;
   const userId = user?.id;
 
   const [phase, setPhase] = useState<"idle" | "loading" | "done">("idle");
@@ -35,6 +41,32 @@ export function AiInsightPanel({
   const [isBookmarked, setIsBookmarked] = useState<boolean>(
     Boolean(articleId && user?.bookmarks?.includes(articleId))
   );
+
+  const [liked, setLiked] = useState<boolean>(
+    isLiked || Boolean(articleId && user?.likedPosts?.includes(articleId))
+  );
+  const [likes, setLikes] = useState<number>(likesCount);
+
+  const handleLikeClick = async () => {
+    if (!userId) {
+      router.push("/login");
+      return;
+    }
+
+    const nextLiked = !liked;
+    setLiked(nextLiked);
+    setLikes((prev) => (nextLiked ? prev + 1 : Math.max(0, prev - 1)));
+
+    if (onLikeToggle) {
+      onLikeToggle();
+    } else {
+      const res = await likeArticle(articleId);
+      if (res && res.likes !== undefined) {
+        setLikes(res.likes);
+        setLiked(res.liked);
+      }
+    }
+  };
 
   const handleBookmarkToggle = async () => {
     if (!userId) {
@@ -76,7 +108,22 @@ export function AiInsightPanel({
             NewsMind AI Analysis
           </h3>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {/* Like Button */}
+          <button
+            onClick={handleLikeClick}
+            aria-label="Toggle Like"
+            className={`flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer px-2.5 py-1 rounded-md border ${
+              liked
+                ? "text-rose-600 bg-rose-50 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/50"
+                : "text-zinc-600 dark:text-zinc-300 bg-white/70 dark:bg-zinc-900/50 border-teal-200/60 dark:border-teal-800/50 hover:text-rose-500"
+            }`}
+          >
+            {liked ? <FaHeart className="size-3.5 text-rose-500" /> : <FaRegHeart className="size-3.5" />}
+            <span>{likes.toLocaleString()}</span>
+          </button>
+
+          {/* Bookmark Button */}
           <button
             onClick={handleBookmarkToggle}
             aria-label="Toggle Bookmark"
@@ -94,9 +141,11 @@ export function AiInsightPanel({
               </>
             )}
           </button>
+
+          {/* Close Button */}
           <button
             onClick={onClose}
-            className="text-xs font-bold text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+            className="text-xs font-bold text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors cursor-pointer ml-1"
           >
             ✕ Close
           </button>

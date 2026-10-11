@@ -1,17 +1,6 @@
 import { Request } from "express";
-import jwt from "jsonwebtoken";
 import { ObjectId } from "mongodb";
 import { usersCollection } from "../config/db";
-
-export function getJwtSecret() {
-  return process.env.JWT_SECRET || "dev-secret";
-}
-
-export function getAuthToken(req: Request) {
-  const authHeader = req.headers.authorization || "";
-  if (!authHeader.startsWith("Bearer ")) return null;
-  return authHeader.replace("Bearer ", "").trim();
-}
 
 export type AuthUser = {
   userId: string;
@@ -21,15 +10,6 @@ export type AuthUser = {
 };
 
 export function getAuthUser(req: Request): AuthUser | null {
-  const token = getAuthToken(req);
-  if (token) {
-    try {
-      return jwt.verify(token, getJwtSecret()) as AuthUser;
-    } catch {
-      return null;
-    }
-  }
-
   const userIdHeader = req.headers["x-user-id"];
   const roleHeader = req.headers["x-user-role"];
   const emailHeader = req.headers["x-user-email"];

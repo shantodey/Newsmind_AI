@@ -1,5 +1,4 @@
 import { Router, Request, Response } from "express";
-import authRoutes from "./auth.routes";
 import articleRoutes from "./article.routes";
 import userRoutes from "./user.routes";
 import aiRoutes from "./ai.routes";
@@ -10,7 +9,6 @@ router.get("/health", (_req: Request, res: Response) => {
   res.json({ status: "ok", message: "NewsMind AI API is running" });
 });
 
-router.use("/api/auth", authRoutes);
 router.use("/api/articles", articleRoutes);
 router.use("/api", userRoutes);
 router.use("/api/ai", aiRoutes);

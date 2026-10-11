@@ -171,9 +171,9 @@ export async function bookmarkArticleByBody(req: Request, res: Response) {
   const { userId, articleId } = req.body;
   if (!userId || !articleId) return res.status(400).json({ error: "Missing ids" });
 
-  const filter = ObjectId.isValid(userId) ? { _id: new ObjectId(userId) } : { _id: userId };
+  const filter: any = ObjectId.isValid(userId) ? { _id: new ObjectId(userId) } : { _id: userId };
   let targetColl = userCollection;
-  let foundUser = await targetColl.findOne(filter);
+  let foundUser: any = await targetColl.findOne(filter);
 
   if (!foundUser) {
     targetColl = usersCollection;
@@ -255,51 +255,37 @@ export async function toggleLike(req: Request, res: Response) {
     const articleId = req.params.id;
     const userId = authUser.userId;
 
-    const user = await getOrCreateUser(userId, authUser.email, authUser.name);
+    const filter: any = ObjectId.isValid(userId) ? { _id: new ObjectId(userId) } : { _id: userId };
+    const userDoc: any = await userCollection.findOne(filter) || await usersCollection.findOne(filter);
+    const likedPosts: string[] = (userDoc?.likedPosts || []).map((id: any) => String(id));
+    const hasLiked = likedPosts.includes(articleId);
 
-    const likedPosts: string[] = (user?.likedPosts || []).map((id: any) => id.toString());
-    const hasLiked = likedPosts.includes(articleId.toString());
+    const articleFilter: any = ObjectId.isValid(articleId) ? { _id: new ObjectId(articleId) } : { _id: articleId };
 
     if (hasLiked) {
-      // Unlike Operation
-      await usersCollection.updateOne(
-        { _id: new ObjectId(userId) },
-        { $pull: { likedPosts: articleId } } as any
-      );
+      // Unlike Operation: remove from user likedPosts and decrement article likes count
+      await userCollection.updateOne(filter as any, { $pull: { likedPosts: articleId } } as any);
+      await usersCollection.updateOne(filter as any, { $pull: { likedPosts: articleId } } as any);
 
-      const updatedArticle = await articlesCollection.findOneAndUpdate(
-        { _id: new ObjectId(articleId) },
+      const updatedArticle: any = await articlesCollection.findOneAndUpdate(
+        articleFilter as any,
         { $inc: { likes: -1 } },
         { returnDocument: "after" }
       );
 
-      return res.json({ liked: false, likes: updatedArticle?.likes || 0 });
+      return res.json({ liked: false, likes: Math.max(0, updatedArticle?.likes || 0) });
     } else {
-      // Like Operation
-      const userUpdateResult = await usersCollection.updateOne(
-        { _id: new ObjectId(userId), likedPosts: { $ne: articleId } },
-        { $addToSet: { likedPosts: articleId } }
+      // Like Operation: add to user likedPosts and increment article likes count
+      await userCollection.updateOne(filter as any, { $addToSet: { likedPosts: articleId } } as any);
+      await usersCollection.updateOne(filter as any, { $addToSet: { likedPosts: articleId } } as any);
+
+      const updatedArticle: any = await articlesCollection.findOneAndUpdate(
+        articleFilter as any,
+        { $inc: { likes: 1 } },
+        { returnDocument: "after" }
       );
 
-      if (userUpdateResult.modifiedCount > 0) {
-        const updatedArticle = await articlesCollection.findOneAndUpdate(
-          { _id: new ObjectId(articleId) },
-          { $inc: { likes: 1 } },
-          { returnDocument: "after" }
-        );
-
-        await analyticsCollection.insertOne({
-          user: userId,
-          article: articleId,
-          event: "like",
-          createdAt: new Date(),
-        });
-
-        return res.json({ liked: true, likes: updatedArticle?.likes || 0 });
-      }
-
-      const currentArticle = await articlesCollection.findOne({ _id: new ObjectId(articleId) });
-      return res.json({ liked: true, likes: currentArticle?.likes || 0 });
+      return res.json({ liked: true, likes: updatedArticle?.likes || 1 });
     }
   } catch (error) {
     console.error("Like Toggle Error:", error);

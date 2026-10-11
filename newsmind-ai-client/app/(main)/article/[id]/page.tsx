@@ -57,10 +57,20 @@ export default function ArticleDetailPage() {
   const { data: session } = useSession();
   const isLoggedIn = !!session?.user;
 
+  type SessionUser = NonNullable<typeof session>["user"] & { likedPosts?: string[] };
+  const user = session?.user as SessionUser | undefined;
+
   const [article, setArticle] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showAiPanel, setShowAiPanel] = useState(false);
   const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [isLiked, setIsLiked] = useState(false);
+
+  useEffect(() => {
+    if (user?.likedPosts && id) {
+      setIsLiked(user.likedPosts.includes(id));
+    }
+  }, [user?.likedPosts, id]);
 
   useEffect(() => {
     if (!id) return;
@@ -82,9 +92,18 @@ export default function ArticleDetailPage() {
     if (!isLoggedIn) return router.push("/login");
     if (!article?.id) return;
 
-    setArticle((p: any) => ({ ...p, likes: (p.likes || 0) + 1 }));
+    const nextLiked = !isLiked;
+    setIsLiked(nextLiked);
+    setArticle((p: any) => ({
+      ...p,
+      likes: nextLiked ? (p.likes || 0) + 1 : Math.max(0, (p.likes || 0) - 1),
+    }));
+
     const res = await likeArticle(article.id);
-    if (res?.likes !== undefined) setArticle((p: any) => ({ ...p, likes: res.likes }));
+    if (res?.likes !== undefined) {
+      setArticle((p: any) => ({ ...p, likes: res.likes }));
+      if (typeof res.liked === "boolean") setIsLiked(res.liked);
+    }
   };
 
   if (isLoading) {
@@ -143,8 +162,15 @@ export default function ArticleDetailPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-2 flex-wrap">
                   <ShareBar />
-                  <button onClick={handleLikeClick} className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 px-2.5 py-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 hover:text-rose-500 hover:border-rose-200 transition-all cursor-pointer">
-                    <FaHeart className="size-3.5 text-rose-500" />
+                  <button
+                    onClick={handleLikeClick}
+                    className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                      isLiked
+                        ? "border-rose-200 bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:border-rose-900/50"
+                        : "border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 hover:text-rose-500 hover:border-rose-200"
+                    }`}
+                  >
+                    <FaHeart className={`size-3.5 ${isLiked ? "text-rose-500" : "text-zinc-400 group-hover:text-rose-500"}`} />
                     <span>{(article.likes || 0).toLocaleString()} Likes</span>
                   </button>
                 </div>
@@ -153,7 +179,16 @@ export default function ArticleDetailPage() {
                 </Button>
               </div>
 
-              {showAiPanel && <AiInsightPanel onClose={() => setShowAiPanel(false)} articleId={article.id} content={article.content} />}
+              {showAiPanel && (
+                <AiInsightPanel
+                  onClose={() => setShowAiPanel(false)}
+                  articleId={article.id}
+                  content={article.content}
+                  likesCount={article.likes || 0}
+                  isLiked={isLiked}
+                  onLikeToggle={handleLikeClick}
+                />
+              )}
 
               <p className="text-lg font-semibold text-zinc-700 dark:text-zinc-300 leading-relaxed border-l-4 border-teal-500 pl-5 py-1">{article.excerpt}</p>
 
