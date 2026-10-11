@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { ObjectId } from "mongodb";
-import { articlesCollection, commentsCollection, usersCollection, userCollection, db, analyticsCollection } from "../config/db";
-import { getAuthUser, getOrCreateUser, normalizeArticle } from "../utils/helpers";
+import { articlesCollection, commentsCollection, client, userCollection } from "../config/db";
+import { buildUserFilter, getAuthUser, getOrCreateUser, normalizeArticle } from "../utils/helpers";
 
 export async function getArticleStats(_req: Request, res: Response) {
   try {
@@ -121,13 +121,31 @@ export async function createArticle(req: Request, res: Response) {
 
 export async function getArticleById(req: Request, res: Response) {
   try {
+    if (!ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: "Invalid article id" });
+    }
+
     const article = await articlesCollection.findOne({ _id: new ObjectId(req.params.id) });
     if (!article) {
       return res.status(404).json({ error: "Article not found" });
     }
 
     await articlesCollection.updateOne({ _id: article._id }, { $inc: { views: 1 } });
-    res.json({ article: normalizeArticle(article) });
+    const authUser = getAuthUser(req);
+    const [comments, user] = await Promise.all([
+      commentsCollection.find({ article: req.params.id }).sort({ createdAt: -1 }).toArray(),
+      authUser
+        ? userCollection.findOne(buildUserFilter(authUser.userId, authUser.email))
+        : Promise.resolve(null),
+    ]);
+    res.json({
+      article: normalizeArticle(article),
+      comments,
+      interaction: {
+        liked: Boolean(user?.likedPosts?.some((id: unknown) => String(id) === req.params.id)),
+        bookmarked: Boolean(user?.bookmarks?.some((id: unknown) => String(id) === req.params.id)),
+      },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to fetch article" });
@@ -167,28 +185,6 @@ export async function deleteArticle(req: Request, res: Response) {
   }
 }
 
-export async function bookmarkArticleByBody(req: Request, res: Response) {
-  const { userId, articleId } = req.body;
-  if (!userId || !articleId) return res.status(400).json({ error: "Missing ids" });
-
-  const filter: any = ObjectId.isValid(userId) ? { _id: new ObjectId(userId) } : { _id: userId };
-  let targetColl = userCollection;
-  let foundUser: any = await targetColl.findOne(filter);
-
-  if (!foundUser) {
-    targetColl = usersCollection;
-    foundUser = await targetColl.findOne(filter);
-  }
-
-  if (!foundUser) return res.status(404).json({ error: "User not found" });
-
-  const isBookmarked = Array.isArray(foundUser.bookmarks) && foundUser.bookmarks.includes(articleId);
-  const update = isBookmarked ? { $pull: { bookmarks: articleId } } : { $addToSet: { bookmarks: articleId } };
-
-  await targetColl.updateOne(filter, update as any);
-  res.json({ bookmarked: !isBookmarked });
-}
-
 export async function getBookmarkStatus(req: Request, res: Response) {
   try {
     const authUser = getAuthUser(req);
@@ -214,33 +210,39 @@ export async function toggleBookmark(req: Request, res: Response) {
     }
 
     const articleId = req.params.id;
-    const userId = authUser.userId;
+    if (!ObjectId.isValid(articleId)) {
+      return res.status(400).json({ error: "Invalid article id" });
+    }
 
-    const user = await getOrCreateUser(userId, authUser.email, authUser.name);
-    const isBookmarked = user?.bookmarks?.includes(articleId);
-
-    if (isBookmarked) {
-      await usersCollection.updateOne(
-        { _id: new ObjectId(userId) },
-        { $pull: { bookmarks: articleId } } as any
-      );
-      await userCollection.updateOne(
-        { _id: new ObjectId(userId) },
-        { $pull: { bookmarks: articleId } } as any
-      );
-      return res.json({ bookmarked: false });
-    } else {
-      await usersCollection.updateOne(
-        { _id: new ObjectId(userId) },
-        { $addToSet: { bookmarks: articleId } }
-      );
-      await userCollection.updateOne(
-        { _id: new ObjectId(userId) },
-        { $addToSet: { bookmarks: articleId } }
-      );
-      return res.json({ bookmarked: true });
+    const user = await getOrCreateUser(authUser.userId, authUser.email, authUser.name);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const session = client.startSession();
+    let bookmarked = false;
+    try {
+      await session.withTransaction(async () => {
+        const currentUser = await userCollection.findOne({ _id: user._id }, { session });
+        if (!currentUser) throw new Error("User not found");
+        const isBookmarked = currentUser.bookmarks?.some(
+          (id: unknown) => String(id) === articleId
+        ) ?? false;
+        await userCollection.updateOne(
+          { _id: user._id },
+          isBookmarked
+            ? { $pull: { bookmarks: articleId } }
+            : { $addToSet: { bookmarks: articleId } },
+          { session }
+        );
+        bookmarked = !isBookmarked;
+      });
+      return res.json({ bookmarked });
+    } finally {
+      await session.endSession();
     }
   } catch (error) {
+    console.error("Bookmark Toggle Error:", error);
+    if (error instanceof Error && error.message === "User not found") {
+      return res.status(404).json({ error: error.message });
+    }
     res.status(500).json({ error: "Failed to toggle bookmark" });
   }
 }
@@ -255,40 +257,46 @@ export async function toggleLike(req: Request, res: Response) {
     const articleId = req.params.id;
     const userId = authUser.userId;
 
-    const filter: any = ObjectId.isValid(userId) ? { _id: new ObjectId(userId) } : { _id: userId };
-    const userDoc: any = await userCollection.findOne(filter) || await usersCollection.findOne(filter);
-    const likedPosts: string[] = (userDoc?.likedPosts || []).map((id: any) => String(id));
-    const hasLiked = likedPosts.includes(articleId);
-
-    const articleFilter: any = ObjectId.isValid(articleId) ? { _id: new ObjectId(articleId) } : { _id: articleId };
-
-    if (hasLiked) {
-      // Unlike Operation: remove from user likedPosts and decrement article likes count
-      await userCollection.updateOne(filter as any, { $pull: { likedPosts: articleId } } as any);
-      await usersCollection.updateOne(filter as any, { $pull: { likedPosts: articleId } } as any);
-
-      const updatedArticle: any = await articlesCollection.findOneAndUpdate(
-        articleFilter as any,
-        { $inc: { likes: -1 } },
-        { returnDocument: "after" }
-      );
-
-      return res.json({ liked: false, likes: Math.max(0, updatedArticle?.likes || 0) });
-    } else {
-      // Like Operation: add to user likedPosts and increment article likes count
-      await userCollection.updateOne(filter as any, { $addToSet: { likedPosts: articleId } } as any);
-      await usersCollection.updateOne(filter as any, { $addToSet: { likedPosts: articleId } } as any);
-
-      const updatedArticle: any = await articlesCollection.findOneAndUpdate(
-        articleFilter as any,
-        { $inc: { likes: 1 } },
-        { returnDocument: "after" }
-      );
-
-      return res.json({ liked: true, likes: updatedArticle?.likes || 1 });
+    if (!ObjectId.isValid(articleId)) {
+      return res.status(400).json({ error: "Invalid article id" });
     }
+
+    const user = await getOrCreateUser(userId, authUser.email, authUser.name);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const articleFilter = { _id: new ObjectId(articleId) };
+    const session = client.startSession();
+    let response: { liked: boolean; likes: number } | undefined;
+    try {
+      await session.withTransaction(async () => {
+        const currentUser = await userCollection.findOne({ _id: user._id }, { session });
+        if (!currentUser) throw new Error("User not found");
+        const hasLiked = currentUser.likedPosts?.some(
+          (id: unknown) => String(id) === articleId
+        ) ?? false;
+        const article = await articlesCollection.findOne(articleFilter, { session });
+        if (!article) throw new Error("Article not found");
+
+        await userCollection.updateOne(
+          { _id: user._id },
+          hasLiked
+            ? { $pull: { likedPosts: articleId } }
+            : { $addToSet: { likedPosts: articleId } },
+          { session }
+        );
+        const likes = Math.max(0, Number(article.likes || 0) + (hasLiked ? -1 : 1));
+        await articlesCollection.updateOne(articleFilter, { $set: { likes } }, { session });
+        response = { liked: !hasLiked, likes };
+      });
+    } finally {
+      await session.endSession();
+    }
+    return res.json(response);
   } catch (error) {
     console.error("Like Toggle Error:", error);
+    if (error instanceof Error && error.message === "Article not found") {
+      return res.status(404).json({ error: error.message });
+    }
     res.status(500).json({ error: "Failed to toggle like" });
   }
 }

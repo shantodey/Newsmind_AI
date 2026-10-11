@@ -1,6 +1,6 @@
 import { Request } from "express";
 import { ObjectId } from "mongodb";
-import { usersCollection } from "../config/db";
+import { userCollection } from "../config/db";
 
 export type AuthUser = {
   userId: string;
@@ -42,14 +42,14 @@ export async function getOrCreateUser(userId: string, email?: string, name?: str
   if (!userId) return null;
 
   const filter = buildUserFilter(userId, email);
-  let user = await usersCollection.findOne(filter);
+  let user = await userCollection.findOne(filter);
 
   if (user) {
     return user;
   }
 
-  await usersCollection.insertOne({
-    _id: new ObjectId(userId),
+  await userCollection.insertOne({
+    _id: ObjectId.isValid(userId) ? new ObjectId(userId) : userId,
     name: name || email || "User",
     email: email ? String(email).toLowerCase() : "",
     role: "user",
@@ -61,7 +61,7 @@ export async function getOrCreateUser(userId: string, email?: string, name?: str
     updatedAt: new Date(),
   });
 
-  return usersCollection.findOne(filter);
+  return userCollection.findOne(filter);
 }
 
 export function normalizeArticle(article: any) {

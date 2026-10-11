@@ -1,4 +1,4 @@
-import { MongoClient, ServerApiVersion, Db, Collection } from "mongodb";
+import { MongoClient, ServerApiVersion, Db, Collection, ObjectId } from "mongodb";
 
 const mongoUri = process.env.MONGODB_URI;
 
@@ -15,8 +15,23 @@ export const client = new MongoClient(mongoUri, {
 });
 
 export const db: Db = client.db(process.env.MONGO_DB_NAME || "newsmind-ai");
-export const userCollection: Collection = db.collection("user");
-export const usersCollection: Collection = db.collection("users");
+type UserDocument = {
+  _id?: ObjectId | string;
+  name?: string;
+  email?: string;
+  role?: string;
+  avatar?: string;
+  image?: string | null;
+  bio?: string;
+  bookmarks?: string[];
+  likedPosts?: string[];
+  createdAt?: Date;
+  updatedAt?: Date;
+  wantsJournalist?: boolean;
+  emailVerified?: boolean;
+};
+
+export const userCollection: Collection<UserDocument> = db.collection("user");
 export const articlesCollection: Collection = db.collection("articles");
 export const commentsCollection: Collection = db.collection("comments");
 export const analyticsCollection: Collection = db.collection("analytics");

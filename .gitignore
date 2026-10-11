@@ -16,6 +16,8 @@
 #ai
 .agents
 PROJECT_CONTEXT.md
+.vscode
+FRONTEND-CLEANUP-TODO.md
 
 # next.js
 /.next/

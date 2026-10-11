@@ -120,7 +120,7 @@ function LoginForm() {
     const { error } = await authClient.signIn.email({
       email: data.email,
       password: data.password,
-      callbackURL: "/dashboard",
+      callbackURL: "/profile",
     });
     
     if (error) {
@@ -136,12 +136,12 @@ function LoginForm() {
       } catch (err) {
         console.error("Express login error:", err);
       }
-      router.push("/dashboard");
+      router.push("/profile");
     }
   };
 
   const handleGoogleSignIn = async () => {
-    await authClient.signIn.social({ provider: "google", callbackURL: "/dashboard" });
+    await authClient.signIn.social({ provider: "google", callbackURL: "/profile" });
   };
 
   return (
@@ -225,7 +225,7 @@ function RegisterForm() {
       email: data.email,
       password: data.password,
       image: avatarUrl,
-      callbackURL: "/dashboard",
+      callbackURL: "/profile",
     });
     if (error) {
       setServerError(error.message || "Could not create account. Please try again.");
@@ -240,12 +240,12 @@ function RegisterForm() {
       } catch (err) {
         console.error("Express register error:", err);
       }
-      router.push("/dashboard");
+      router.push("/profile");
     }
   };
 
   const handleGoogleSignUp = async () => {
-    await signIn.social({ provider: "google", callbackURL: "/dashboard" });
+    await signIn.social({ provider: "google", callbackURL: "/profile" });
   };
 
   return (

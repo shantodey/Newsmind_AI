@@ -5,7 +5,7 @@ import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { jwt } from "better-auth/plugins";
 
 const client = new MongoClient(process.env.MONGODB_URI as string);
-const db = client.db("newsmind-ai");
+const db = client.db(process.env.MONGO_DB_NAME || "newsmind-ai");
 
 export const auth = betterAuth({
   database: mongodbAdapter(db, {

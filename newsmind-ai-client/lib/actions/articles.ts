@@ -35,7 +35,7 @@ export async function getArticleById(id: string) {
     });
     if (!res.ok) throw new Error("Failed to fetch article details");
     const data = await res.json();
-    return data.article || null;
+    return data.article ? { ...data.article, comments: data.comments || [], interaction: data.interaction } : null;
   } catch (error) {
     console.error("Server Action getArticleById error:", error);
     return null;

@@ -13,11 +13,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { likeArticle, toggleBookmark } from "@/lib/actions/interactions";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { useState } from "react";
 
 interface Author {
   name: string;
@@ -35,22 +33,30 @@ interface CompactPost {
 }
 
 interface ArticleSidebarProps {
-  articleId: string;
   author: Author;
   tags: string[];
   topPosts: CompactPost[];
   likesCount?: number;
-  initialIsLiked?: boolean;
+  isLiked: boolean;
+  isLiking: boolean;
+  isBookmarked: boolean;
+  isBookmarking: boolean;
+  onLikeToggle: () => void;
+  onBookmarkToggle: () => void;
   onTriggerAi: () => void;
 }
 
 export function ArticleSidebar({
-  articleId,
   author,
   tags,
   topPosts,
   likesCount = 0,
-  initialIsLiked = false,
+  isLiked,
+  isLiking,
+  isBookmarked,
+  isBookmarking,
+  onLikeToggle,
+  onBookmarkToggle,
   onTriggerAi,
 }: ArticleSidebarProps) {
   const router = useRouter();
@@ -63,63 +69,12 @@ export function ArticleSidebar({
 
 const { data: session } = authClient.useSession();
 
-type SessionUser = NonNullable<typeof session>["user"] & {
-  likedPosts?: string[];
-  bookmarks?: string[];
-};
-
-const user = session?.user as SessionUser | undefined;
+const user = session?.user;
 
 const userId = user?.id;
 const isLoggedIn = Boolean(userId);
 
   // Like state
-const [liked, setLiked] = useState(
-  !!articleId && !!user?.likedPosts?.includes(articleId)
-);
-  const [currentLikes, setCurrentLikes] = useState(likesCount);
-  const [isLiking, setIsLiking] = useState(false);
-
-  const handleLikeToggle = async () => {
-    if (!user?.id) return router.push("/login");
-    if (liked || !articleId || isLiking) return;
-
-    setIsLiking(true);
-    setLiked(true);
-    setCurrentLikes((n) => n + 1);
-
-    const res = await likeArticle(articleId);
-    if (res?.likes !== undefined) {
-      setCurrentLikes(res.likes);
-    } else {
-      setLiked(false);
-      setCurrentLikes((n) => n - 1);
-    }
-    setIsLiking(false);
-  };
-
-const [isBookmarked, setIsBookmarked] = useState(
-  Boolean(articleId && user?.bookmarks?.includes(articleId))
-);
-
-const isAlreadyBookmarked =
-  isBookmarked || Boolean(articleId && user?.bookmarks?.includes(articleId));
-  const isButtonDisabled = !isLoggedIn || isAlreadyBookmarked;
- const handleBookmarkToggle = async () => {
-  if (!userId) {
-    router.push("/login");
-    return;
-  }
-
-  const res = await toggleBookmark(articleId, userId);
-
-  if (res && typeof res.bookmarked === "boolean") {
-    setIsBookmarked(res.bookmarked);
-    toast.success(res.bookmarked ? "Bookmarked!" : "Removed from bookmarks");
-  } else {
-    toast.error("Failed to update bookmark");
-  }
-};
   const handleFollowToggle = () => {
     if (!userId) {
       router.push("/login");
@@ -140,23 +95,23 @@ const isAlreadyBookmarked =
         <CardContent className="p-4 flex items-center justify-around">
           {/* Like Button */}
           <button
-            onClick={handleLikeToggle}
-            disabled={!user?.id || liked || isLiking}
+            onClick={() => user?.id ? onLikeToggle() : router.push("/login")}
+            disabled={!user?.id || isLiking}
             className={`flex flex-col items-center gap-1 transition-colors ${!user?.id
               ? "opacity-50 cursor-not-allowed text-zinc-400"
-              : liked
+              : isLiked
                 ? "text-rose-500 cursor-default"
                 : "text-zinc-500 hover:text-rose-500 cursor-pointer disabled:opacity-50"
               }`}
           >
-            {liked ? <FaHeart className="size-5 text-rose-500" /> : <FaRegHeart className="size-5" />}
-            <span className="text-[10px] font-bold">{currentLikes.toLocaleString()} Likes</span>
+            {isLiked ? <FaHeart className="size-5 text-rose-500" /> : <FaRegHeart className="size-5" />}
+            <span className="text-[10px] font-bold">{likesCount.toLocaleString()} Likes</span>
           </button>
 
           {/* Bookmark Button */}
           <button
-            onClick={handleBookmarkToggle}
-            disabled={!isLoggedIn}
+            onClick={() => userId ? onBookmarkToggle() : router.push("/login")}
+            disabled={!isLoggedIn || isBookmarking}
             className={`flex flex-col items-center gap-1 transition-colors ${!isLoggedIn
               ? "text-zinc-400 cursor-not-allowed opacity-50"
               : isBookmarked

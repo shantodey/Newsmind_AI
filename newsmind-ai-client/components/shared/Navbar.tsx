@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { FaMagnifyingGlass, FaBars, FaXmark, FaUser, FaArrowRightFromBracket, FaFolderOpen } from "react-icons/fa6";
@@ -9,30 +8,23 @@ import { useSession, signOut } from "@/lib/auth-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import logo from '@/components/logo.png';
 import Image from "next/image";
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, } from "@/components/ui/dropdown-menu"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "../ui/input-group";
+import { useState } from "react";
 
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session, isPending } = useSession();
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-  const [searchOpen, setSearchOpen] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState("");
-  const [profileDropdownOpen, setProfileDropdownOpen] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
 
   const navLinks = [
     { label: "Home", href: "/" },
     { label: "Explore", href: "/explore" },
-    { label: "Dashboard", href: "/dashboard" },
     { label: "About", href: "/about" },
   ];
 
@@ -61,14 +53,8 @@ export function Navbar() {
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`text-sm font-semibold transition-colors hover:text-zinc-900 dark:hover:text-zinc-50 ${isActive
-                    ? "text-zinc-900 dark:text-zinc-50 border-b-2 border-teal-500 py-1"
-                    : "text-zinc-500 dark:text-zinc-400"
-                    }`}
-                >
+                <Link key={link.href} href={link.href} className={`text-sm font-semibold transition-colors hover:text-zinc-900 dark:hover:text-zinc-50
+                   ${isActive ? "text-zinc-900 dark:text-zinc-50 border-b-2 border-teal-500 py-1" : "text-zinc-500 dark:text-zinc-400"}`}>
                   {link.label}
                 </Link>
               );
@@ -79,19 +65,12 @@ export function Navbar() {
         {/* Desktop actions */}
         <div className="hidden md:flex items-center gap-4">
           <div className="relative">
-            <FaMagnifyingGlass className="absolute top-2.5 left-2.5 size-4 text-zinc-400" />
-            <input
-              type="text"
-              placeholder="Search news..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  router.push(`/explore?q=${encodeURIComponent(searchQuery)}`);
-                }
-              }}
-              className="h-9 w-52 rounded-md border border-zinc-200 bg-zinc-50/50 pl-9 pr-4 text-sm font-medium focus:border-zinc-300 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900"
-            />
+            <InputGroup className="max-w-xs">
+              <InputGroupAddon>
+                <FaMagnifyingGlass />
+              </InputGroupAddon>
+              <InputGroupInput placeholder="Search news..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { router.push(`/explore?q=${encodeURIComponent(searchQuery)}`); } }} />
+            </InputGroup>
           </div>
 
           {!isPending && user ? (
@@ -103,13 +82,13 @@ export function Navbar() {
               </Avatar></Button>} />
               <DropdownMenuContent align="end">
                 <DropdownMenuGroup>
-                    <Link href="/profile">
+                  <Link href="/profile">
 
-                  <DropdownMenuItem >
+                    <DropdownMenuItem >
                       <FaUser className="size-3.5" />
                       My Profile
-                  </DropdownMenuItem>
-                    </Link>
+                    </DropdownMenuItem>
+                  </Link>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className='text-rose-600'>
@@ -119,31 +98,17 @@ export function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button
-              variant="default"
-              size="sm"
-              nativeButton={false}
-              render={<Link href="/login">Sign In</Link>}
-              className="rounded-md cursor-pointer"
-            />
+            <Button variant="default" size="sm" nativeButton={false} render={<Link href="/login">Sign In</Link>} className="rounded-md cursor-pointer" />
           )}
         </div>
 
         {/* Mobile controls */}
         <div className="flex md:hidden items-center gap-2">
-          <button
-            onClick={() => setSearchOpen(!searchOpen)}
-            className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 text-zinc-500 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900 transition-colors"
-            aria-label="Toggle search"
-          >
+          <button onClick={() => setSearchOpen(!searchOpen)} className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 text-zinc-500 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900 transition-colors" aria-label="Toggle search">
             <FaMagnifyingGlass className="size-4" />
           </button>
 
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 text-zinc-500 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900 transition-colors"
-            aria-label="Toggle menu"
-          >
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 text-zinc-500 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900 transition-colors" aria-label="Toggle menu">
             {mobileMenuOpen ? <FaXmark className="size-4" /> : <FaBars className="size-4" />}
           </button>
         </div>
@@ -153,20 +118,12 @@ export function Navbar() {
       {searchOpen && (
         <div className="border-t border-zinc-100 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950 md:hidden">
           <div className="relative">
-            <FaMagnifyingGlass className="absolute top-2.5 left-2.5 size-4 text-zinc-400" />
-            <input
-              type="text"
-              placeholder="Search news..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  router.push(`/explore?q=${encodeURIComponent(searchQuery)}`);
-                  setSearchOpen(false);
-                }
-              }}
-              className="h-9 w-full rounded-md border border-zinc-200 bg-zinc-50/50 pl-9 pr-4 text-sm font-medium focus:border-zinc-300 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900"
-            />
+            <InputGroup className="max-w-xs">
+              <InputGroupAddon>
+                <FaMagnifyingGlass />
+              </InputGroupAddon>
+              <InputGroupInput placeholder="Search news..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { router.push(`/explore?q=${encodeURIComponent(searchQuery)}`); } }} />
+            </InputGroup>
           </div>
         </div>
       )}
@@ -178,15 +135,11 @@ export function Navbar() {
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
+                <Link key={link.href} href={link.href} onClick={() => setMobileMenuOpen(false)}
                   className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900 ${isActive
                     ? "text-teal-600 dark:text-teal-400 bg-teal-50/30 dark:bg-teal-950/15"
                     : "text-zinc-500 dark:text-zinc-400"
-                    }`}
-                >
+                    }`}>
                   {link.label}
                 </Link>
               );
@@ -195,20 +148,12 @@ export function Navbar() {
             {!isPending && user && (
               <>
                 <div className="border-t border-zinc-100 pt-2 mt-2 dark:border-zinc-900" />
-                <Link
-                  href="/profile"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900"
-                >
+                <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900">
                   <FaUser className="size-3.5" />
                   Profile
                 </Link>
                 {isAdmin && (
-                  <Link
-                    href="/articles/manage"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-teal-600 dark:text-teal-400 hover:bg-teal-50/30"
-                  >
+                  <Link href="/articles/manage" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-teal-600 dark:text-teal-400 hover:bg-teal-50/30">
                     <FaFolderOpen className="size-3.5" />
                     Manage Articles
                   </Link>
@@ -219,25 +164,11 @@ export function Navbar() {
 
           <div className="border-t border-zinc-100 pt-3 dark:border-zinc-800 flex flex-col gap-2">
             {!isPending && user ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  handleSignOut();
-                }}
-                className="w-full rounded-md cursor-pointer text-rose-600 dark:text-rose-400"
-              >
+              <Button variant="outline" size="sm" onClick={() => { setMobileMenuOpen(false); handleSignOut(); }} className="w-full rounded-md cursor-pointer text-rose-600 dark:text-rose-400" >
                 Sign Out
               </Button>
             ) : (
-              <Button
-                variant="default"
-                size="sm"
-                nativeButton={false}
-                render={<Link href="/login" onClick={() => setMobileMenuOpen(false)}>Sign In</Link>}
-                className="w-full rounded-md cursor-pointer"
-              />
+              <Button variant="default" size="sm" nativeButton={false} render={<Link href="/login" onClick={() => setMobileMenuOpen(false)}>Sign In</Link>} className="w-full rounded-md cursor-pointer" />
             )}
           </div>
         </div>

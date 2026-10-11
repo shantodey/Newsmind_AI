@@ -1,6 +1,6 @@
 "use server";
 
-import { BACKEND_URL } from "./_client";
+import { BACKEND_URL, getAuthHeaders } from "./_client";
 
 export async function updateProfile(
   id: string,
@@ -36,13 +36,11 @@ export async function requestJournalist(userId: string) {
   }
 }
 
-export async function getUserBookmarks(bookmarkIds: string[] = [], userId?: string) {
+export async function getUserBookmarks() {
+  const { reqHeaders } = await getAuthHeaders();
   const res = await fetch(`${BACKEND_URL}/api/users/bookmarks`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ bookmarkIds, userId }),
+    headers: reqHeaders,
   });
 
   if (!res.ok) {

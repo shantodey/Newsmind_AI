@@ -10,9 +10,10 @@ import { ArticleSidebar } from "@/components/shared/ArticleSidebar";
 import { CommentSection } from "@/components/shared/CommentSection";
 import { AiInsightPanel } from "./AiInsightPanel";
 import { getArticleById } from "@/lib/actions/articles";
-import { likeArticle } from "@/lib/actions/interactions";
+import { likeArticle, toggleBookmark } from "@/lib/actions/interactions";
 import { aiRecommendations } from "@/lib/actions/ai";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 const FALLBACK_ARTICLE_IMAGE = "https://images.unsplash.com/photo-1551958219-acbc595e6d88?w=1400";
 const FALLBACK_AVATAR = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100";
@@ -39,6 +40,8 @@ function normalizeArticle(a: any) {
       role: a?.author?.role || "Author",
       followers: a?.author?.followers || 100,
     },
+    comments: a?.comments || [],
+    interaction: a?.interaction || { liked: false, bookmarked: false },
   };
 }
 
@@ -57,27 +60,26 @@ export default function ArticleDetailPage() {
   const { data: session } = useSession();
   const isLoggedIn = !!session?.user;
 
-  type SessionUser = NonNullable<typeof session>["user"] & { likedPosts?: string[] };
-  const user = session?.user as SessionUser | undefined;
-
   const [article, setArticle] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showAiPanel, setShowAiPanel] = useState(false);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isLiked, setIsLiked] = useState(false);
-
-  useEffect(() => {
-    if (user?.likedPosts && id) {
-      setIsLiked(user.likedPosts.includes(id));
-    }
-  }, [user?.likedPosts, id]);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
+  const [isBookmarking, setIsBookmarking] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
 
     getArticleById(id)
-      .then((data) => !cancelled && setArticle(normalizeArticle(data)))
+      .then((data) => {
+        if (cancelled || !data) return;
+        setArticle(normalizeArticle(data));
+        setIsLiked(Boolean(data.interaction?.liked));
+        setIsBookmarked(Boolean(data.interaction?.bookmarked));
+      })
       .catch((err) => console.error("Article fetch failed:", err))
       .finally(() => !cancelled && setIsLoading(false));
 
@@ -90,8 +92,9 @@ export default function ArticleDetailPage() {
 
   const handleLikeClick = async () => {
     if (!isLoggedIn) return router.push("/login");
-    if (!article?.id) return;
+    if (!article?.id || isLiking) return;
 
+    setIsLiking(true);
     const nextLiked = !isLiked;
     setIsLiked(nextLiked);
     setArticle((p: any) => ({
@@ -100,10 +103,32 @@ export default function ArticleDetailPage() {
     }));
 
     const res = await likeArticle(article.id);
-    if (res?.likes !== undefined) {
+    if (res?.likes !== undefined && typeof res.liked === "boolean") {
       setArticle((p: any) => ({ ...p, likes: res.likes }));
-      if (typeof res.liked === "boolean") setIsLiked(res.liked);
+      setIsLiked(res.liked);
+    } else {
+      setIsLiked(!nextLiked);
+      setArticle((p: any) => ({
+        ...p,
+        likes: Math.max(0, (p.likes || 0) + (nextLiked ? -1 : 1)),
+      }));
+      toast.error(res?.error || "Failed to update like");
     }
+    setIsLiking(false);
+  };
+
+  const handleBookmarkClick = async () => {
+    if (!isLoggedIn) return router.push("/login");
+    if (isBookmarking) return;
+    setIsBookmarking(true);
+    const result = await toggleBookmark(article.id);
+    if (typeof result?.bookmarked === "boolean") {
+      setIsBookmarked(result.bookmarked);
+      toast.success(result.bookmarked ? "Bookmarked!" : "Removed from bookmarks");
+    } else {
+      toast.error(result?.error || "Failed to update bookmark");
+    }
+    setIsBookmarking(false);
   };
 
   if (isLoading) {
@@ -164,6 +189,7 @@ export default function ArticleDetailPage() {
                   <ShareBar />
                   <button
                     onClick={handleLikeClick}
+                    disabled={isLiking}
                     className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                       isLiked
                         ? "border-rose-200 bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:border-rose-900/50"
@@ -186,7 +212,11 @@ export default function ArticleDetailPage() {
                   content={article.content}
                   likesCount={article.likes || 0}
                   isLiked={isLiked}
+                  isLiking={isLiking}
                   onLikeToggle={handleLikeClick}
+                  isBookmarked={isBookmarked}
+                  isBookmarking={isBookmarking}
+                  onBookmarkToggle={handleBookmarkClick}
                 />
               )}
 
@@ -204,12 +234,12 @@ export default function ArticleDetailPage() {
                 </div>
               )}
 
-              <CommentSection articleId={article.id} />
+              <CommentSection key={article.id} articleId={article.id} initialComments={article.comments} />
             </article>
 
             <aside className="hidden lg:block">
               <div className="sticky top-24">
-                <ArticleSidebar articleId={article.id} author={article.author} tags={article.tags} topPosts={recommendations} likesCount={article.likes} onTriggerAi={() => { setShowAiPanel(true); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+                <ArticleSidebar author={article.author} tags={article.tags} topPosts={recommendations} likesCount={article.likes} isLiked={isLiked} isLiking={isLiking} isBookmarked={isBookmarked} isBookmarking={isBookmarking} onLikeToggle={handleLikeClick} onBookmarkToggle={handleBookmarkClick} onTriggerAi={() => { setShowAiPanel(true); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
               </div>
             </aside>
           </div>

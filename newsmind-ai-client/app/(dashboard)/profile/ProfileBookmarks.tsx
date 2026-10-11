@@ -63,8 +63,7 @@ export function ProfileBookmarks({
 
       try {
         setLoading(true);
-        const userBookmarkIds = user?.bookmarks ?? [];
-        const fetchedArticles = await getUserBookmarks(userBookmarkIds, userId);
+        const fetchedArticles = await getUserBookmarks();
         const list = Array.isArray(fetchedArticles) ? fetchedArticles : [];
         setBookmarks(list);
         onCountChange?.(list.length);
@@ -85,10 +84,13 @@ export function ProfileBookmarks({
 
     try {
       setRemovingId(articleId);
-      const updatedBookmarks = bookmarks.filter((b) => (b._id || b.id) !== articleId);
-      setBookmarks(updatedBookmarks);
-      onCountChange?.(updatedBookmarks.length);
-      await toggleBookmark(articleId, userId);
+      const result = await toggleBookmark(articleId);
+      if (result?.bookmarked !== false) {
+        throw new Error(result?.error || "Failed to remove bookmark");
+      }
+      const updated = bookmarks.filter((bookmark) => (bookmark._id || bookmark.id) !== articleId);
+      setBookmarks(updated);
+      onCountChange?.(updated.length);
     } catch (error) {
       console.error("Failed to remove bookmark:", error);
     } finally {

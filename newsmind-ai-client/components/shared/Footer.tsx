@@ -30,7 +30,7 @@ export function Footer() {
       links: [
         { label: "Overview", href: "/about" },
         { label: "Explore News", href: "/explore" },
-        { label: "AI Dashboard", href: "/dashboard" },
+        { label: "My Profile", href: "/profile" },
         { label: "Pricing", href: "#" },
       ],
     },

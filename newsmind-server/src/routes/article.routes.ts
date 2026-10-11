@@ -6,7 +6,6 @@ import {
   getArticleById,
   updateArticle,
   deleteArticle,
-  bookmarkArticleByBody,
   getBookmarkStatus,
   toggleBookmark,
   toggleLike,
@@ -18,9 +17,6 @@ const router = Router();
 
 // Stats
 router.get("/stats", getArticleStats);
-
-// Bookmarks (direct route)
-router.post("/bookmark", bookmarkArticleByBody);
 
 // Articles list & create
 router.get("/", getArticles);

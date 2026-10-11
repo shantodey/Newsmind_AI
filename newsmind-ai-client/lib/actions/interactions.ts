@@ -2,18 +2,7 @@
 
 import { BACKEND_URL, getAuthHeaders } from "./_client";
 
-export async function toggleBookmark(articleId: string, userId?: string) {
-  // If userId provided, direct route /api/articles/bookmark
-  if (userId) {
-    const res = await fetch(`${BACKEND_URL}/api/articles/bookmark`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, articleId }),
-    });
-    return res.ok ? res.json() : null;
-  }
-
-  // Session-based toggle
+export async function toggleBookmark(articleId: string) {
   try {
     const { reqHeaders } = await getAuthHeaders();
     const res = await fetch(`${BACKEND_URL}/api/articles/${articleId}/bookmark`, {
@@ -24,7 +13,7 @@ export async function toggleBookmark(articleId: string, userId?: string) {
     return await res.json();
   } catch (error) {
     console.error("Server Action toggleBookmark error:", error);
-    return { error: "Network error" };
+    return { error: error instanceof Error ? error.message : "Network error" };
   }
 }
 

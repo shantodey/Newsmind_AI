@@ -1,10 +1,9 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { useSession } from "@/lib/auth-client";
-import { getComments, postComment } from "@/lib/actions/interactions";
+import { postComment } from "@/lib/actions/interactions";
 import {
   FaRegHeart,
   FaHeart,
@@ -34,6 +33,47 @@ interface CommentData {
   publishedAt: string;
   likes: number;
   replies?: CommentData[];
+}
+
+interface CommentDocument {
+  id?: string;
+  _id?: { toString(): string } | string;
+  author: string;
+  body: string;
+  parentId?: string | null;
+  likes?: number;
+  createdAt?: string | Date;
+}
+
+function formatComment(comment: CommentDocument, currentUser?: { id: string; name: string; image?: string | null }): CommentData {
+  const isCurrentUser = currentUser && comment.author === currentUser.id;
+  const avatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60&h=60&fit=crop";
+  return {
+    id: String(comment.id || comment._id),
+    author: {
+      name: comment.author === "anonymous" ? "Anonymous Reader" : isCurrentUser ? currentUser.name || "You" : "NewsMind Reader",
+      avatar: isCurrentUser ? currentUser.image || avatar : avatar,
+    },
+    body: comment.body,
+    publishedAt: comment.createdAt
+      ? new Date(comment.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+      : "Just now",
+    likes: comment.likes || 0,
+    replies: [],
+  };
+}
+
+function formatCommentTree(comments: CommentDocument[], currentUser?: { id: string; name: string; image?: string | null }) {
+  const formatted = comments.map((comment) => formatComment(comment, currentUser));
+  const byId = new Map(formatted.map((comment) => [comment.id, comment]));
+  const topLevel: CommentData[] = [];
+  comments.forEach((comment, index) => {
+    const item = formatted[index];
+    const parent = comment.parentId ? byId.get(comment.parentId) : undefined;
+    if (parent) parent.replies?.push(item);
+    else topLevel.push(item);
+  });
+  return topLevel;
 }
 
 const INITIAL_COMMENTS: CommentData[] = [
@@ -247,76 +287,25 @@ function CommentCard({ comment, depth = 0, onReply }: CommentCardProps) {
   );
 }
 
-export function CommentSection({ articleId }: { articleId: string }) {
-  const [comments, setComments] = React.useState<CommentData[]>([]);
+export function CommentSection({
+  articleId,
+  initialComments = [],
+}: {
+  articleId: string;
+  initialComments?: CommentDocument[];
+}) {
+  const { data: session } = useSession();
+  const [comments, setComments] = React.useState<CommentData[]>(() =>
+    formatCommentTree(initialComments, session?.user)
+  );
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitted, setSubmitted] = React.useState(false);
-  const { data: session } = useSession();
-
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
   } = useForm<CommentFormValues>();
-
-  const loadComments = React.useCallback(async () => {
-    if (!articleId) return;
-    const dbComments = await getComments(articleId);
-    if (dbComments) {
-      const currentUser = session?.user;
-      
-      const topLevel: CommentData[] = [];
-      const repliesMap: Record<string, CommentData[]> = {};
-
-      const formatComment = (c: any): CommentData => {
-        let name = "Anonymous Reader";
-        let avatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=60&h=60&fit=crop";
-        
-        if (c.author === "anonymous") {
-          name = "Anonymous Reader";
-        } else if (currentUser && c.author === currentUser.id) {
-          name = currentUser.name || "You";
-          avatar = currentUser.image || avatar;
-        } else {
-          name = "NewsMind Reader";
-        }
-
-        return {
-          id: c.id || c._id,
-          author: { name, avatar },
-          body: c.body,
-          publishedAt: c.createdAt 
-            ? new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-            : "Just now",
-          likes: c.likes || 0,
-          replies: [],
-        };
-      };
-
-      dbComments.forEach((c: any) => {
-        const formatted = formatComment(c);
-        if (!c.parentId) {
-          topLevel.push(formatted);
-        } else {
-          if (!repliesMap[c.parentId]) {
-            repliesMap[c.parentId] = [];
-          }
-          repliesMap[c.parentId].push(formatted);
-        }
-      });
-
-      topLevel.forEach((parent) => {
-        parent.replies = repliesMap[parent.id] || [];
-      });
-
-      setComments(topLevel);
-    }
-  }, [articleId, session]);
-
-  React.useEffect(() => {
-    loadComments();
-  }, [loadComments]);
 
   React.useEffect(() => {
     if (session?.user) {
@@ -331,6 +320,11 @@ export function CommentSection({ articleId }: { articleId: string }) {
     setIsSubmitting(true);
     const res = await postComment(articleId, data.body);
     if (res && !res.error) {
+      const comment = res.comment;
+      if (comment) {
+        const formatted = formatComment(comment, session?.user);
+        setComments((current) => [formatted, ...current]);
+      }
       reset({
         name: session?.user?.name || "",
         email: session?.user?.email || "",
@@ -339,7 +333,6 @@ export function CommentSection({ articleId }: { articleId: string }) {
       setIsSubmitting(false);
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 3000);
-      await loadComments();
     } else {
       setIsSubmitting(false);
     }
@@ -348,7 +341,15 @@ export function CommentSection({ articleId }: { articleId: string }) {
   const handleReply = async (parentId: string, body: string) => {
     const res = await postComment(articleId, body, parentId);
     if (res && !res.error) {
-      await loadComments();
+      const comment = res.comment;
+      if (!comment) return;
+      const formatted = formatComment(comment, session?.user);
+      const addReply = (items: CommentData[]): CommentData[] => items.map((item) =>
+        item.id === parentId
+          ? { ...item, replies: [...(item.replies || []), formatted] }
+          : { ...item, replies: addReply(item.replies || []) }
+      );
+      setComments(addReply);
     }
   };
 

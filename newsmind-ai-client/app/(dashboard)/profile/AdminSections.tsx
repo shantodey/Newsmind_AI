@@ -29,9 +29,9 @@ export function AdminQuickActions() {
       badgeColor: "bg-teal-50 text-teal-700 border-teal-200",
     },
     {
-      title: "Editorial Analytics",
-      description: "View aggregate engagement, reader activity, and sentiment trends",
-      href: "/dashboard",
+      title: "Platform Metrics",
+      description: "View live article, view, and like totals in your profile",
+      href: "/profile",
       icon: BarChart3,
       badge: "Reports",
       badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200",

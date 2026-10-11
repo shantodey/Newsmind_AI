@@ -4,10 +4,6 @@ import { useState } from "react";
 import { FaBrain, FaRobot, FaBookmark, FaRegBookmark, FaHeart, FaRegHeart } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
 import { aiSummarize, aiSentiment } from "@/lib/actions/ai";
-import { toggleBookmark, likeArticle } from "@/lib/actions/interactions";
-import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 
 const SENTIMENT_COLOR: Record<string, string> = {
   positive: "text-emerald-600 dark:text-emerald-400",
@@ -21,67 +17,26 @@ export function AiInsightPanel({
   content,
   likesCount = 0,
   isLiked = false,
+  isLiking = false,
+  isBookmarked = false,
+  isBookmarking = false,
   onLikeToggle,
+  onBookmarkToggle,
 }: {
   onClose: () => void;
   articleId: string;
   content: string;
   likesCount?: number;
   isLiked?: boolean;
+  isLiking?: boolean;
+  isBookmarked?: boolean;
+  isBookmarking?: boolean;
   onLikeToggle?: () => void;
+  onBookmarkToggle: () => void;
 }) {
-  const router = useRouter();
-  const { data: session } = authClient.useSession();
-  const user = session?.user as (NonNullable<typeof session>["user"] & { bookmarks?: string[]; likedPosts?: string[] }) | undefined;
-  const userId = user?.id;
-
   const [phase, setPhase] = useState<"idle" | "loading" | "done">("idle");
   const [summary, setSummary] = useState<any>(null);
   const [sentiment, setSentiment] = useState<any>(null);
-  const [isBookmarked, setIsBookmarked] = useState<boolean>(
-    Boolean(articleId && user?.bookmarks?.includes(articleId))
-  );
-
-  const [liked, setLiked] = useState<boolean>(
-    isLiked || Boolean(articleId && user?.likedPosts?.includes(articleId))
-  );
-  const [likes, setLikes] = useState<number>(likesCount);
-
-  const handleLikeClick = async () => {
-    if (!userId) {
-      router.push("/login");
-      return;
-    }
-
-    const nextLiked = !liked;
-    setLiked(nextLiked);
-    setLikes((prev) => (nextLiked ? prev + 1 : Math.max(0, prev - 1)));
-
-    if (onLikeToggle) {
-      onLikeToggle();
-    } else {
-      const res = await likeArticle(articleId);
-      if (res && res.likes !== undefined) {
-        setLikes(res.likes);
-        setLiked(res.liked);
-      }
-    }
-  };
-
-  const handleBookmarkToggle = async () => {
-    if (!userId) {
-      router.push("/login");
-      return;
-    }
-
-    const res = await toggleBookmark(articleId, userId);
-    if (res && typeof res.bookmarked === "boolean") {
-      setIsBookmarked(res.bookmarked);
-      toast.success(res.bookmarked ? "Bookmarked!" : "Removed from bookmarks");
-    } else {
-      toast.error("Failed to update bookmark");
-    }
-  };
 
   const handleAnalyze = async () => {
     setPhase("loading");
@@ -111,21 +66,23 @@ export function AiInsightPanel({
         <div className="flex items-center gap-2">
           {/* Like Button */}
           <button
-            onClick={handleLikeClick}
+            onClick={onLikeToggle}
+            disabled={isLiking}
             aria-label="Toggle Like"
             className={`flex items-center gap-1.5 text-xs font-bold transition-colors cursor-pointer px-2.5 py-1 rounded-md border ${
-              liked
+              isLiked
                 ? "text-rose-600 bg-rose-50 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/50"
                 : "text-zinc-600 dark:text-zinc-300 bg-white/70 dark:bg-zinc-900/50 border-teal-200/60 dark:border-teal-800/50 hover:text-rose-500"
             }`}
           >
-            {liked ? <FaHeart className="size-3.5 text-rose-500" /> : <FaRegHeart className="size-3.5" />}
-            <span>{likes.toLocaleString()}</span>
+            {isLiked ? <FaHeart className="size-3.5 text-rose-500" /> : <FaRegHeart className="size-3.5" />}
+            <span>{likesCount.toLocaleString()}</span>
           </button>
 
           {/* Bookmark Button */}
           <button
-            onClick={handleBookmarkToggle}
+            onClick={onBookmarkToggle}
+            disabled={isBookmarking}
             aria-label="Toggle Bookmark"
             className="flex items-center gap-1.5 text-xs font-bold text-teal-800 dark:text-teal-200 hover:text-teal-950 transition-colors cursor-pointer bg-white/70 dark:bg-zinc-900/50 px-2.5 py-1 rounded-md border border-teal-200/60 dark:border-teal-800/50"
           >

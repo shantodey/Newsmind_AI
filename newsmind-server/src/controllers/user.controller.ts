@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { ObjectId } from "mongodb";
-import { userCollection, db } from "../config/db";
+import { articlesCollection, userCollection } from "../config/db";
+import { buildUserFilter, getAuthUser } from "../utils/helpers";
 
 export async function requestJournalist(req: Request, res: Response) {
   try {
@@ -31,7 +32,9 @@ export async function updateUserProfile(req: Request, res: Response) {
       return res.status(400).json({ success: false, message: "Valid user id is required" });
     }
 
-    const updateData: Record<string, any> = { updatedAt: new Date() };
+    const updateData: { name?: string; image?: string | null; updatedAt: Date } = {
+      updatedAt: new Date(),
+    };
     if (name !== undefined) updateData.name = name;
     if (image !== undefined) updateData.image = image;
 
@@ -53,26 +56,20 @@ export async function updateUserProfile(req: Request, res: Response) {
 
 export async function getUserBookmarks(req: Request, res: Response) {
   try {
-    let { bookmarkIds, userId } = req.body;
-
-    if ((!bookmarkIds || !Array.isArray(bookmarkIds) || bookmarkIds.length === 0) && userId) {
-      const filter = ObjectId.isValid(userId) ? { _id: new ObjectId(userId) } : { _id: userId };
-      const u = await userCollection.findOne(filter) || await db.collection("users").findOne(filter);
-      if (u?.bookmarks && Array.isArray(u.bookmarks)) {
-        bookmarkIds = u.bookmarks;
-      }
+    const authUser = getAuthUser(req);
+    if (!authUser?.userId) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
-    if (!bookmarkIds || !Array.isArray(bookmarkIds) || bookmarkIds.length === 0) {
+    const user = await userCollection.findOne(buildUserFilter(authUser.userId, authUser.email));
+    const bookmarkIds: string[] = Array.isArray(user?.bookmarks)
+      ? user.bookmarks.map((id: unknown) => String(id))
+      : [];
+    if (bookmarkIds.length === 0) {
       return res.json({ bookmarks: [] });
     }
-    const objectIds = bookmarkIds
-      .filter((id: string) => ObjectId.isValid(id))
-      .map((id: string) => new ObjectId(id));
-    const bookmarkedArticles = await db
-      .collection("articles")
-      .find({ _id: { $in: objectIds } })
-      .toArray();
+    const objectIds = bookmarkIds.filter(ObjectId.isValid).map((id) => new ObjectId(id));
+    const bookmarkedArticles = await articlesCollection.find({ _id: { $in: objectIds } }).toArray();
     res.json({ bookmarks: bookmarkedArticles });
   } catch (error) {
     console.error("Fetch bookmarks error:", error);
