@@ -27,7 +27,7 @@ function normalizeArticle(a: any) {
     category: a?.category || "General",
     imageUrl: a?.imageUrl || FALLBACK_ARTICLE_IMAGE,
     publishedAt: a?.publishedAt || new Date().toLocaleDateString(),
-    readTime: a?.readTime || "5 min",
+    createdAt: a?.createdAt || "5 min",
     views: a?.views || 0,
     likes: a?.likes || 0,
     sentiment: a?.sentiment || "neutral",

@@ -56,7 +56,7 @@ export function Footer() {
 
   return (
     <footer className="border-t border-zinc-100 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950/30">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+      <div className="mx-auto container px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <div className="xl:grid xl:grid-cols-3 xl:gap-8">
           {/* Brand Info & Newsletter */}
           <div className="space-y-6 xl:col-span-1">

@@ -1,191 +1,68 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import { getArticles } from "@/lib/actions/articles";
-import { FaRegClock, FaPlay, FaRegLightbulb } from "react-icons/fa6";
-import { SectionHeader } from "@/components/shared/SectionHeader";
 import { CategoryPill } from "@/components/shared/CategoryPill";
-import { ArticleCard, Article } from "@/components/shared/ArticleCard";
+import { ArticleCard } from "@/components/shared/ArticleCard";
 import { WeatherWidget } from "@/components/shared/WeatherWidget";
 import { SportsWidget } from "@/components/shared/SportsWidget";
-
 import { AiSimulator } from "@/components/shared/AiSimulator";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import Hero from "@/components/shared/Hero";
+import { Article } from "@/schema/artcle";
+import { SectionHeader } from "@/components/shared/SectionHeader";
+import CatBlock from "@/components/shared/CatBlock";
 
+const CATEGORIES = ["ALL", "TECHNOLOGY", "WORLD", "BUSINESS", "SPORT", "SCIENCE"];
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  const [heroIndex, setHeroIndex] = useState(0);
-
 
   useEffect(() => {
     getArticles()
       .then((data) => {
-        if (data && data?.length > 0) {
-          const dbArticles = data.map((a: any) => ({
-            id: a._id || a.id,
-            title: a.title,
-            excerpt: a.excerpt,
-            content: a.content,
-            category: a.category,
-            readTime: a.readTime || "5 min",
-            publishedAt: new Date(a.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-            imageUrl: a.imageUrl || "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800",
-            likes: a.likes || 0,
-            views: a.views || 0,
-            sentiment: a.sentiment || "neutral",
-            author: a.author || { name: "NewsMind Agent", avatar: "" }
-          }));
-          setArticles(dbArticles);
-          setSelectedArticle(dbArticles[0]);
-        }
+        const validArticles = (data ?? []).flatMap((raw: unknown) => {
+          const result = Article.safeParse(raw);
+          if (!result.success) {
+            console.warn("Skipping invalid article:", result.error.message);
+            return [];
+          }
+          return [result.data];
+        });
+
+        setArticles(validArticles);
+        setSelectedArticle(validArticles[0] ?? null);
       })
       .catch((err) => console.error("Error fetching homepage articles:", err));
   }, []);
 
-  const categories = ["ALL", "TECHNOLOGY", "WORLD", "BUSINESS", "SPORT", "SCIENCE"];
-
-  const filteredArticles =
-    selectedCategory === "ALL"
-      ? articles
-      : articles.filter(
-          (article) =>
-            article.category.toUpperCase() === selectedCategory.toUpperCase()
-        );
-
-  const handleHeroNext = () => {
-    setHeroIndex((prev) => (prev + 1) % 3);
-  };
-
-  const handleHeroPrev = () => {
-    setHeroIndex((prev) => (prev - 1 + 3) % 3);
-  };
+  const filteredArticles = articles.filter(
+    (article) => selectedCategory === "ALL" || article.category.toUpperCase() === selectedCategory
+  );
 
   return (
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-50 antialiased">
+      <Hero articles={articles.slice(0, 3)} />
 
-
-      {/* Hero section */}
-      <section className="relative w-full overflow-hidden bg-zinc-900 py-12 md:py-20 text-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            {/* Left featured info slide */}
-            <div className="lg:col-span-6 space-y-6 animate-fade-in">
-              <div className="flex items-center gap-2">
-                <Badge className="bg-teal-500 hover:bg-teal-400 text-zinc-950 font-bold uppercase tracking-wider text-xs">
-                  {articles[heroIndex]?.category || "General"}
-                </Badge>
-                <div className="flex items-center gap-1 text-xs text-zinc-400">
-                  <FaRegClock className="size-3" />
-                  <span>{articles[heroIndex]?.readTime || "5 min"}</span>
-                </div>
-              </div>
-
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight tracking-tight text-white transition-all duration-300">
-                {articles[heroIndex]?.title || ""}
-              </h1>
-
-              <p className="text-zinc-300 text-base sm:text-lg leading-relaxed max-w-xl">
-                {articles[heroIndex]?.excerpt || ""}
-              </p>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-3">
-                <Button variant="default" render={<Link href={`/article/${articles[heroIndex]?.id || "e1"}`}>Read Full Story</Link>} className="rounded-md hover:bg-teal-600 bg-teal-500 text-zinc-950 font-bold px-6 h-11 cursor-pointer" />
-                <Button
-                  variant="outline"
-                  onClick={() => setSelectedArticle(articles[heroIndex] || null)}
-                  className="rounded-md border-zinc-700 bg-transparent text-white hover:bg-zinc-800 h-11 px-5 font-semibold cursor-pointer"
-                >
-                  Simulate AI Analysis
-                </Button>
-              </div>
-
-              {/* Slide Navigation controls */}
-              <div className="flex items-center gap-4 pt-4 border-t border-zinc-800/80">
-                <div className="flex items-center gap-1.5">
-                  {[0, 1, 2].map((idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setHeroIndex(idx)}
-                      className={`h-2.5 rounded-full transition-all duration-300 ${
-                        heroIndex === idx ? "w-6 bg-teal-500" : "w-2.5 bg-zinc-700"
-                      }`}
-                      aria-label={`Go to slide ${idx + 1}`}
-                    />
-                  ))}
-                </div>
-
-                <div className="flex gap-2">
-                  <button onClick={handleHeroPrev} className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
-                    ←
-                  </button>
-                  <button
-                    onClick={handleHeroNext}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-                  >
-                    →
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Right featured image showcase */}
-            <div className="lg:col-span-6 relative aspect-video w-full overflow-hidden rounded-xl bg-zinc-800 border border-zinc-800 shadow-2xl">
-              <Image
-                src={articles[heroIndex]?.imageUrl || "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800"}
-                alt="Featured News"
-                fill
-                priority
-                className="object-cover transition-all duration-500 brightness-95 hover:brightness-100"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Main Grid content */}
-      <main className="mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-12 space-y-12 flex-1">
-        
-        {/* Popular posts, category selections & widgets grid */}
+      <main className="mx-auto container w-full px-4 sm:px-6 lg:px-8 py-12 space-y-12 flex-1">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* Left section (Popular Posts) */}
           <div className="lg:col-span-8 space-y-6">
-            <SectionHeader
-              title="Popular Articles"
-              subtitle="The most read articles globally, curated and reviewed by AI"
-              badge="TRENDING TOPICS"
-            />
+            <SectionHeader title="Popular Articles" subtitle="The most read articles globally, curated and reviewed by AI" badge="TRENDING TOPICS" />
 
-            {/* Categories pills filter */}
             <div className="flex flex-wrap gap-2 pb-2">
-              {categories.map((cat) => (
-                <CategoryPill
-                  key={cat}
-                  label={cat}
-                  active={selectedCategory === cat}
-                  onClick={() => setSelectedCategory(cat)}
-                />
+              {CATEGORIES.map((cat) => (
+                <CategoryPill key={cat} label={cat} active={selectedCategory === cat} onClick={() => setSelectedCategory(cat)} />
               ))}
             </div>
 
-            {/* Grid of articles */}
             {filteredArticles.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {filteredArticles.map((article) => (
-                  <ArticleCard
-                    key={article.id}
-                    article={article}
+                  <ArticleCard key={article._id} article={article}
                     onSelectForAi={(art) => {
                       setSelectedArticle(art);
-                      const el = document.getElementById("ai-workroom");
-                      if (el) el.scrollIntoView({ behavior: "smooth" });
+                      document.getElementById("ai-workroom")?.scrollIntoView({ behavior: "smooth" });
                     }}
                   />
                 ))}
@@ -197,8 +74,7 @@ export default function Home() {
             )}
           </div>
 
-          {/* Right section (Widgets: Weather, Scoreboard, AI simulator) */}
-          <div className="lg:col-span-4 space-y-8">
+          <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-24 lg:self-start  lg:overflow-y-auto">
             <WeatherWidget />
             <SportsWidget />
             <div id="ai-workroom" className="scroll-mt-20">
@@ -207,55 +83,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Video Theatre Hub */}
-
-
-        {/* Scientific Breakthroughs section */}
-        <div className="space-y-6">
-          <SectionHeader
-            title="Scientific Breakthroughs & Insights"
-            subtitle="The latest advancements across medical, biology, and environment sectors analyzed by AI agents"
-            badge="SCIENCE & MEDICINE"
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {articles.slice(4, 7).map((article) => (
-              <ArticleCard
-                key={article.id}
-                article={article}
-                onSelectForAi={(art) => {
-                  setSelectedArticle(art);
-                  const el = document.getElementById("ai-workroom");
-                  if (el) el.scrollIntoView({ behavior: "smooth" });
-                }}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* CTA block */}
-        <section className="relative rounded-2xl bg-zinc-900 border border-zinc-800 text-white p-8 md:p-12 overflow-hidden shadow-xl">
-          <div className="absolute top-0 right-0 h-48 w-48 bg-teal-500/10 rounded-full blur-3xl -z-10" />
-          <div className="absolute bottom-0 left-0 h-48 w-48 bg-zinc-800/20 rounded-full blur-2xl -z-10" />
-          
-          <div className="max-w-2xl mx-auto text-center space-y-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-500 text-zinc-950 mx-auto shadow-md">
-              <FaRegLightbulb className="size-6" />
-            </div>
-            <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-              Unlock the Power of AI-News Intelligence
-            </h2>
-            <p className="text-zinc-300 text-base md:text-lg leading-relaxed">
-              Join thousands of researchers, media analysts, and decision-makers. Recieve real-time summaries, personalized recommendation streams, and advanced sentiment modeling for all global trends.
-            </p>
-            <div className="flex flex-wrap justify-center gap-3">
-              <Button variant="default" render={<Link href="/register">Get Started Free</Link>} className="rounded-md bg-teal-500 text-zinc-950 font-bold hover:bg-teal-400 px-6 h-11 cursor-pointer" />
-              <Button variant="outline" render={<Link href="/about">Learn More</Link>} className="rounded-md border-zinc-700 hover:bg-zinc-800 text-white h-11 px-6 font-semibold cursor-pointer" />
-            </div>
-          </div>
-        </section>
+        <CatBlock />
       </main>
-
     </div>
   );
 }

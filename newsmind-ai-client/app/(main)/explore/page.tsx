@@ -10,7 +10,8 @@ import {
   FaRegClock,
 } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
-import { ArticleCard, type Article } from "@/components/shared/ArticleCard";
+import { ArticleCard } from "@/components/shared/ArticleCard";
+import { Article } from "@/schema/artcle";
 import { getArticles } from "@/lib/actions/articles";
 import { useEffect, useMemo, useState } from "react";
 
@@ -62,32 +63,14 @@ export default function ExplorePage() {
     setIsLoading(true);
     getArticles(activeCategory)
       .then((data) => {
-        const dbArticles = (data || []).map((a: any) => ({
-          id: a._id?.["$oid"] || a._id || a.id,
-          title: a.title,
-          excerpt: a.excerpt,
-          content: a.content,
-          category: a.category,
-          readTime: a.readTime || "5 min",
-          publishedAt: new Date(a.createdAt).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          }),
-          imageUrl: a.imageUrl || "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800",
-          likes: a.likes || 0,
-          views: a.views || 0,
-          sentiment: a.sentiment || "neutral",
-          sentimentScore: a.sentimentScore || 0.5,
-          tags: a.tags || [],
-          author: typeof a.author === "string"
-            ? { name: a.author, image: "" }
-            : {
-              name: a.author?.authorName || "NewsMind Agent",
-              image: a.author?.authorImage || "",
-            },
+        setArticles((data || []).flatMap((raw: unknown) => {
+          const result = Article.safeParse(raw);
+          if (!result.success) {
+            console.warn("Skipping invalid article:", result.error.message);
+            return [];
+          }
+          return [result.data];
         }));
-        setArticles(dbArticles);
       })
       .catch((err) => console.error("Error fetching explore articles:", err))
       .finally(() => setIsLoading(false));
@@ -107,7 +90,7 @@ export default function ExplorePage() {
       result = result.filter(
         (a) =>
           a.title.toLowerCase().includes(q) ||
-          a.excerpt.toLowerCase().includes(q) ||
+        (a.excerpt || a.content).toLowerCase().includes(q) ||
           a.tags.some((t) => t.toLowerCase().includes(q))
       );
     }
@@ -242,7 +225,7 @@ export default function ExplorePage() {
               ? Array.from({ length: PAGE_SIZE }).map((_, i) => <SkeletonCard key={i} />)
               : paginated.length > 0
                 ? paginated.map((article) => (
-                  <ArticleCard key={article.id} article={article} />
+                  <ArticleCard key={article._id} article={article} />
                 ))
                 : (
                   <div className="col-span-full flex flex-col items-center justify-center py-24 gap-4 text-center">
@@ -295,7 +278,7 @@ export default function ExplorePage() {
           {!isLoading && filtered.length > 0 && (
             <div className="flex items-center justify-center gap-2 text-xs text-zinc-400 font-medium pt-2">
               <FaRegClock className="size-3" />
-              <span>Total reading time for current results: ~{filtered.reduce((acc, a) => acc + parseInt(a.readTime), 0)} min</span>
+              <span>Total reading time for current results: ~{filtered.reduce((total, article) => total + Math.max(1, Math.ceil(article.content.trim().split(/\s+/).length / 200)), 0)} min</span>
             </div>
           )}
         </div>

@@ -4,7 +4,7 @@ import * as React from "react";
 import {FaRobot,FaArrowRight,FaCheck,FaCircleNotch,FaFaceSmile,FaFaceMeh,FaFaceFrown,} from "react-icons/fa6";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Article } from "./ArticleCard";
+import type { Article } from "@/schema/artcle";
 
 interface AiSimulatorProps {
   selectedArticle: Article | null;
@@ -96,6 +96,10 @@ export function AiSimulator({ selectedArticle }: AiSimulatorProps) {
 
   // সেফটি চেক: tags অ্যারে না থাকলে খালি অ্যারে সেট করবে যেন লুপ ক্র্যাশ না করে
   const extractedTags = Array.isArray(selectedArticle?.tags) ? selectedArticle.tags : [];
+  const readTime = selectedArticle
+    ? Math.max(1, Math.ceil(selectedArticle.content.trim().split(/\s+/).length / 200))
+    : 1;
+  const excerpt = selectedArticle?.excerpt || selectedArticle?.content.slice(0, 160).trimEnd() + "…";
 
   return (
     <Card className="border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 h-full flex flex-col">
@@ -190,7 +194,7 @@ export function AiSimulator({ selectedArticle }: AiSimulatorProps) {
                       Reading Time
                     </span>
                     <span className="text-xs font-extrabold text-zinc-800 dark:text-zinc-200 block mt-1">
-                      {selectedArticle?.readTime || "1 min read"}
+                      {readTime} min read
                     </span>
                   </div>
                 </div>
@@ -203,7 +207,7 @@ export function AiSimulator({ selectedArticle }: AiSimulatorProps) {
                   <ul className="space-y-1 text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">
                     <li className="flex items-start gap-1.5">
                       <FaArrowRight className="size-2 text-teal-600 dark:text-teal-400 mt-1 shrink-0" />
-                      <span>{selectedArticle?.excerpt || "No summary available."}</span>
+                      <span>{excerpt || "No summary available."}</span>
                     </li>
                     <li className="flex items-start gap-1.5">
                       <FaArrowRight className="size-2 text-teal-600 dark:text-teal-400 mt-1 shrink-0" />
