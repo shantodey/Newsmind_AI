@@ -6,10 +6,9 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { FaRegLightbulb, FaGoogle, FaEye, FaEyeSlash, FaEnvelope, FaLock, FaUser } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
-import { signIn, signUp } from "@/lib/auth-client";
+import { authClient, signIn, signUp } from "@/lib/auth-client";
 import { syncExpressAuth } from "@/lib/actions/auth";
 import { uploadToImageBB } from "@/lib/imagebb";
-import { createAuthClient } from "better-auth/react";
 
 type LoginValues = { email: string; password: string };
 type RegisterValues = { name: string; email: string; password: string; confirm: string };
@@ -109,14 +108,10 @@ function LoginForm() {
   const [serverError, setServerError] = React.useState("");
   const { register, handleSubmit, formState: { errors } } = useForm<LoginValues>();
   
-  // authClient সরাসরি ব্যবহার করুন
-  const authClient = createAuthClient();
-
   const onSubmit = async (data: LoginValues) => {
     setLoading(true);
     setServerError("");
     
-    // authClient.signIn.email ব্যবহার করা হয়েছে
     const { error } = await authClient.signIn.email({
       email: data.email,
       password: data.password,

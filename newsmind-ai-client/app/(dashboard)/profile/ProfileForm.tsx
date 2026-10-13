@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession, authClient } from "@/lib/auth-client";
+import { useCurrentUser, authClient } from "@/lib/auth-client";
 import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { 
@@ -22,8 +22,7 @@ interface AccountDetailsProps {
 }
 
 export function AccountDetails({ onProfileUpdated }: AccountDetailsProps) {
-  const { data: session } = authClient.useSession();
-  const user = session?.user;
+  const { user } = useCurrentUser();
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);

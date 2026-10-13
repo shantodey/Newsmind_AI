@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useForm } from "react-hook-form";
-import { useSession } from "@/lib/auth-client";
+import { useCurrentUser } from "@/lib/auth-client";
 import { postComment } from "@/lib/actions/interactions";
 import {
   FaRegHeart,
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 interface CommentFormValues {
   name: string;
@@ -182,7 +183,7 @@ function CommentCard({ comment, depth = 0, onReply }: CommentCardProps) {
 
       <div className="flex-1 min-w-0 space-y-2">
         {/* Bubble */}
-        <div className="rounded-xl bg-zinc-50 border border-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60 px-4 py-3">
+        <div className="rounded-xl bg-zinc-50 border border-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/60 ">
           <div className="flex items-center justify-between gap-2 mb-1.5">
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-zinc-900 dark:text-zinc-50">
@@ -205,10 +206,7 @@ function CommentCard({ comment, depth = 0, onReply }: CommentCardProps) {
 
         {/* Actions */}
         <div className="flex items-center gap-4 px-1">
-          <button
-            onClick={handleLike}
-            className="flex items-center gap-1 text-xs font-semibold text-zinc-400 hover:text-rose-500 transition-colors"
-          >
+          <button  onClick={handleLike}  className="flex items-center gap-1 text-xs font-semibold text-zinc-400 hover:text-rose-500 transition-colors">
             {liked ? (
               <FaHeart className="size-3.5 text-rose-500" />
             ) : (
@@ -217,10 +215,8 @@ function CommentCard({ comment, depth = 0, onReply }: CommentCardProps) {
             <span>{likeCount}</span>
           </button>
 
-          <button
-            onClick={() => setReplying((prev) => !prev)}
-            className="flex items-center gap-1 text-xs font-semibold text-zinc-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
-          >
+          <button  onClick={() => setReplying((prev) => !prev)}
+            className="flex items-center gap-1 text-xs font-semibold text-zinc-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
             <FaReply className="size-3.5" />
             <span>Reply</span>
           </button>
@@ -243,31 +239,15 @@ function CommentCard({ comment, depth = 0, onReply }: CommentCardProps) {
 
         {/* Inline reply form */}
         {replying && (
-          <form
-            onSubmit={handleSubmit(onReplySubmit)}
-            className="flex items-start gap-2 mt-2"
-          >
-            <Textarea
-              {...register("reply", { required: true })}
-              placeholder={`Reply to ${comment.author.name}...`}
-              rows={2}
+          <form onSubmit={handleSubmit(onReplySubmit)} className="flex items-start gap-2 mt-2">
+            <Textarea  {...register("reply", { required: true })}  placeholder={`Reply to ${comment.author.name}...`}  rows={2}
               className="flex-1 text-sm resize-none rounded-xl border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:ring-1 focus:ring-teal-500/50 focus:border-teal-500/50"
             />
             <div className="flex flex-col gap-1.5">
-              <Button
-                type="submit"
-                size="sm"
-                className="text-xs font-bold rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-50 dark:hover:bg-zinc-100 dark:text-zinc-900 cursor-pointer"
-              >
+              <Button  type="submit"  size="sm"  className="text-xs font-bold rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-50 dark:hover:bg-zinc-100 dark:text-zinc-900 cursor-pointer">
                 Post
               </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setReplying(false)}
-                className="text-xs font-semibold cursor-pointer"
-              >
+              <Button  type="button"  variant="ghost"  size="sm"  onClick={() => setReplying(false)}  className="text-xs font-semibold cursor-pointer">
                 Cancel
               </Button>
             </div>
@@ -294,9 +274,9 @@ export function CommentSection({
   articleId: string;
   initialComments?: CommentDocument[];
 }) {
-  const { data: session } = useSession();
+  const { user } = useCurrentUser();
   const [comments, setComments] = React.useState<CommentData[]>(() =>
-    formatCommentTree(initialComments, session?.user)
+    formatCommentTree(initialComments, user)
   );
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitted, setSubmitted] = React.useState(false);
@@ -308,13 +288,13 @@ export function CommentSection({
   } = useForm<CommentFormValues>();
 
   React.useEffect(() => {
-    if (session?.user) {
+    if (user) {
       reset({
-        name: session.user.name || "",
-        email: session.user.email || "",
+        name: user.name || "",
+        email: user.email || "",
       });
     }
-  }, [session, reset]);
+  }, [user, reset]);
 
   const onSubmit = async (data: CommentFormValues) => {
     setIsSubmitting(true);
@@ -322,12 +302,12 @@ export function CommentSection({
     if (res && !res.error) {
       const comment = res.comment;
       if (comment) {
-        const formatted = formatComment(comment, session?.user);
+        const formatted = formatComment(comment, user);
         setComments((current) => [formatted, ...current]);
       }
       reset({
-        name: session?.user?.name || "",
-        email: session?.user?.email || "",
+        name: user?.name || "",
+        email: user?.email || "",
         body: ""
       });
       setIsSubmitting(false);
@@ -343,7 +323,7 @@ export function CommentSection({
     if (res && !res.error) {
       const comment = res.comment;
       if (!comment) return;
-      const formatted = formatComment(comment, session?.user);
+      const formatted = formatComment(comment, user);
       const addReply = (items: CommentData[]): CommentData[] => items.map((item) =>
         item.id === parentId
           ? { ...item, replies: [...(item.replies || []), formatted] }
@@ -361,10 +341,7 @@ export function CommentSection({
         <h2 className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight">
           Comments
         </h2>
-        <Badge
-          variant="secondary"
-          className="text-xs font-bold bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-none rounded-full px-2.5"
-        >
+        <Badge variant="secondary"  className="text-xs font-bold bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-none rounded-full px-2.5">
           {comments.length}
         </Badge>
       </div>
@@ -374,33 +351,25 @@ export function CommentSection({
         <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">
           Add a Comment
         </h3>
-        {!session?.user ? (
+        {!user ? (
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
               You need to be signed in to leave a comment.
             </p>
             <div className="flex items-center gap-3">
-              <a
-                href="/login"
-                className="inline-flex items-center px-4 py-2 rounded-lg bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-xs font-bold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors"
-              >
+              <Link  href="/login"  className="inline-flex items-center px-4 py-2 rounded-lg bg-zinc-900 dark:bg-zinc-50 text-white dark:text-zinc-900 text-xs font-bold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors">
                 Sign In
-              </a>
-              <a
-                href="/register"
-                className="inline-flex items-center px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors"
-              >
+              </Link>
+              <Link  href="/register"  className="inline-flex items-center px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors">
                 Create Account
-              </a>
+              </Link>
             </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                  Name *
-                </label>
+                <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">  Name * </label>
                 <input
                   {...register("name", { required: "Name is required" })}
                   placeholder="Your name"

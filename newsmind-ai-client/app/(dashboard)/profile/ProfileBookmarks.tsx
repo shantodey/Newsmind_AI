@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { getUserBookmarks } from "@/lib/actions/user";
 import { toggleBookmark } from "@/lib/actions/interactions";
-import { authClient } from "@/lib/auth-client";
+import { useCurrentUser } from "@/lib/auth-client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,13 +38,7 @@ export function ProfileBookmarks({
 }: {
   onCountChange?: (count: number) => void;
 }) {
-  const { data: session, isPending } = authClient.useSession();
-  type SessionUser = NonNullable<typeof session>["user"] & {
-    id?: string;
-    bookmarks?: string[];
-  };
-
-  const user = session?.user as SessionUser | undefined;
+  const { user, isPending } = useCurrentUser();
   const userId = user?.id;
 
   const [bookmarks, setBookmarks] = useState<Article[]>([]);

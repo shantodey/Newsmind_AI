@@ -5,7 +5,7 @@ import { PenLine, CheckCircle2, Loader2, BookOpen, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { useSession } from "@/lib/auth-client";
+import { useCurrentUser } from "@/lib/auth-client";
 import { requestJournalist } from "@/lib/actions/user";
 
 export function ContributorCard({
@@ -13,8 +13,7 @@ export function ContributorCard({
 }: {
   isPendingReview?: boolean;
 }) {
-  const { data: session } = useSession();
-  const user = session?.user as any;
+  const { user } = useCurrentUser();
   const [submitting, setSubmitting] = useState(false);
   const [applied, setApplied] = useState(isPendingReview);
 

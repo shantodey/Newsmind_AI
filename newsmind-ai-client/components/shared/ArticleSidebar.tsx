@@ -2,18 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import {
-  FaRegHeart,
-  FaHeart,
-  FaRegBookmark,
-  FaBookmark,
-  FaShareNodes,
-  FaRobot,
-} from "react-icons/fa6";
+import { FaRegHeart, FaHeart, FaRegBookmark, FaBookmark, FaShareNodes, FaRobot, } from "react-icons/fa6";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Toggle } from "@/components/ui/toggle"
 import { Button } from "@/components/ui/button";
-import { authClient } from "@/lib/auth-client";
+import { Attachment, AttachmentContent, AttachmentGroup, AttachmentMedia, AttachmentTitle } from "@/components/ui/attachment"
+import { useCurrentUser } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -32,6 +27,8 @@ interface CompactPost {
   readTime: string;
 }
 
+
+
 interface ArticleSidebarProps {
   author: Author;
   tags: string[];
@@ -46,33 +43,14 @@ interface ArticleSidebarProps {
   onTriggerAi: () => void;
 }
 
-export function ArticleSidebar({
-  author,
-  tags,
-  topPosts,
-  likesCount = 0,
-  isLiked,
-  isLiking,
-  isBookmarked,
-  isBookmarking,
-  onLikeToggle,
-  onBookmarkToggle,
-  onTriggerAi,
-}: ArticleSidebarProps) {
+export function ArticleSidebar({ author, topPosts, likesCount = 0, isLiked, isLiking, isBookmarked, isBookmarking, onLikeToggle, onBookmarkToggle, onTriggerAi }: ArticleSidebarProps) {
+
   const router = useRouter();
-
-
-
-
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(author.followers);
-
-const { data: session } = authClient.useSession();
-
-const user = session?.user;
-
-const userId = user?.id;
-const isLoggedIn = Boolean(userId);
+  const { user } = useCurrentUser();
+  const userId = user?.id;
+  const isLoggedIn = Boolean(userId);
 
   // Like state
   const handleFollowToggle = () => {
@@ -109,26 +87,12 @@ const isLoggedIn = Boolean(userId);
           </button>
 
           {/* Bookmark Button */}
-          <button
-            onClick={() => userId ? onBookmarkToggle() : router.push("/login")}
-            disabled={!isLoggedIn || isBookmarking}
-            className={`flex flex-col items-center gap-1 transition-colors ${!isLoggedIn
-              ? "text-zinc-400 cursor-not-allowed opacity-50"
-              : isBookmarked
-                ? "text-teal-600 hover:text-rose-500 cursor-pointer"
-                : "text-zinc-500 hover:text-teal-600 cursor-pointer"
-              }`}
-          >
-            {isBookmarked ? (
-              <FaBookmark className="size-5 text-teal-600" />
-            ) : (
-              <FaRegBookmark className="size-5" />
-            )}
-            <span className="text-[10px] font-bold">
-              {isBookmarked ? "Saved" : "Bookmark"}
-            </span>
-          </button>
-
+          <Toggle aria-label="Toggle bookmark" size="sm" variant="ghost" pressed={isBookmarked}
+            onPressedChange={() => { if (!userId) return router.push("/login"); if (isBookmarking) return; onBookmarkToggle(); }}
+            disabled={!isLoggedIn || isBookmarking} className={isBookmarked ? "data-[state=on]:text-teal-600" : "hover:text-teal-600"}>
+            <FaBookmark className="group-aria-pressed/toggle:fill-foreground" />
+            <span className="ml-1.5">{isBookmarked ? "Saved" : "Bookmark"}</span>
+          </Toggle>
           {/* Share Button */}
           <button
             onClick={() => {
@@ -144,10 +108,8 @@ const isLoggedIn = Boolean(userId);
           </button>
 
           {/* AI Agent Button */}
-          <button
-            onClick={onTriggerAi}
-            className="flex flex-col items-center gap-1 text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors cursor-pointer"
-          >
+          <button onClick={onTriggerAi}
+            className="flex flex-col items-center gap-1 text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors cursor-pointer">
             <FaRobot className="size-5 animate-pulse" />
             <span className="text-[10px] font-extrabold text-center">
               Run AI Agent
@@ -161,20 +123,10 @@ const isLoggedIn = Boolean(userId);
         <CardContent className="p-5 space-y-4">
           <div className="flex items-center gap-3">
             <div className="relative size-12 overflow-hidden rounded-full bg-zinc-100">
-              <Image
-                src={
-                  author.avatar ||
-                  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100"
-                }
-                alt={author.name}
-                fill
-                className="object-cover"
-              />
+              <Image src={ author.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100"} alt={author.name} fill className="object-cover" />
             </div>
             <div>
-              <h4 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-50">
-                {author.name}
-              </h4>
+              <h4 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-50">  {author.name} </h4>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                 {(followerCount || 0).toLocaleString()} followers
               </p>
@@ -185,38 +137,12 @@ const isLoggedIn = Boolean(userId);
             {author.bio}
           </p>
 
-          <Button
-            onClick={handleFollowToggle}
-            variant={isFollowing ? "outline" : "default"}
-            size="sm"
-            className="w-full text-xs font-bold rounded cursor-pointer"
-          >
+          <Button onClick={handleFollowToggle} variant={isFollowing ? "outline" : "default"} size="sm" className="w-full text-xs font-bold rounded cursor-pointer">
             {isFollowing ? "Following" : "Follow Author"}
           </Button>
         </CardContent>
       </Card>
 
-      {/* 3. Dynamic Tag Cloud */}
-      {tags && tags.length > 0 && (
-        <Card className="border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-          <CardContent className="p-5 space-y-3">
-            <h4 className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
-              Topic Keywords
-            </h4>
-            <div className="flex flex-wrap gap-1.5">
-              {tags.map((tag) => (
-                <Badge
-                  key={tag}
-                  variant="secondary"
-                  className="text-[10px] h-5 py-0 px-2 font-semibold bg-zinc-100 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 border-none transition-colors cursor-pointer"
-                >
-                  #{tag}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* 4. Top Posts Feed */}
       <Card className="border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
@@ -226,34 +152,22 @@ const isLoggedIn = Boolean(userId);
           </h4>
           <div className="space-y-4">
             {topPosts && topPosts.length > 0 ? (
-              topPosts.map((post) => (
-                <div key={post.id} className="flex gap-3 group">
-                  <div className="relative size-14 shrink-0 overflow-hidden rounded bg-zinc-100 dark:bg-zinc-900">
-                    <Image
-                      src={post.imageUrl}
-                      alt={post.title}
-                      fill
-                      className="object-cover transition-transform duration-350 group-hover:scale-105"
-                    />
-                  </div>
-                  <div className="space-y-1 overflow-hidden">
-                    <Badge className="bg-zinc-900/5 text-zinc-700 dark:bg-zinc-100/10 dark:text-zinc-300 text-[8px] h-3.5 px-1 py-0 border-none font-bold uppercase tracking-wider">
-                      {post.category}
-                    </Badge>
-                    <Link
-                      href={`/article/${post.id}`}
-                      className="block group-hover:underline"
-                    >
-                      <h5 className="line-clamp-2 text-xs font-bold text-zinc-800 dark:text-zinc-200 leading-tight">
-                        {post.title}
-                      </h5>
-                    </Link>
-                    <span className="text-[10px] text-zinc-400 font-medium">
-                      {post.readTime}
-                    </span>
-                  </div>
-                </div>
-              ))
+              <AttachmentGroup className="w-full flex flex-col space-y-2">
+                {topPosts.map((post) => (
+                  <Attachment key={post.id} className="w-full">
+                    <AttachmentMedia variant="image">
+                      <Image src={post.imageUrl} alt={post.title} fill className="object-cover" />
+                    </AttachmentMedia>
+
+                    <AttachmentContent>
+                      <Link href={`/article/${post.id}`}>
+                        <AttachmentTitle className="line-clamp-2">{post.title}</AttachmentTitle>
+                      </Link>
+                      <Badge variant="secondary">{post.category}</Badge>
+                    </AttachmentContent>
+                  </Attachment>
+                ))}
+              </AttachmentGroup>
             ) : (
               <p className="text-xs text-zinc-400">
                 No recommended articles found.

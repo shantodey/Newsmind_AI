@@ -19,7 +19,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useSession } from "@/lib/auth-client";
+import { useCurrentUser } from "@/lib/auth-client";
 import { getArticleStats } from "@/lib/actions/articles";
 import { ProfileBookmarks } from "./ProfileBookmarks";
 import { ProfileHistory } from "./ProfileHistory";
@@ -30,8 +30,7 @@ import { NewArticleContent } from "./NewArticleContent";
 import { ManageArticlesContent } from "./ManageArticlesContent";
 
 export default function ProfilePage() {
-  const { data: session, isPending } = useSession();
-  const sessionUser = session?.user;
+  const { user: sessionUser, isPending } = useCurrentUser();
 
   const [profileOverride, setProfileOverride] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("Profile");

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { FaMagnifyingGlass, FaBars, FaXmark, FaUser, FaArrowRightFromBracket, FaFolderOpen } from "react-icons/fa6";
 import { Button } from "@/components/ui/button";
-import { useSession, signOut } from "@/lib/auth-client";
+import { useCurrentUser, signOut } from "@/lib/auth-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import logo from '@/components/logo.png';
 import Image from "next/image";
@@ -15,7 +15,7 @@ import { useState } from "react";
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { data: session, isPending } = useSession();
+  const { user, isPending } = useCurrentUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,8 +33,7 @@ export function Navbar() {
     router.refresh();
   };
 
-  const user = session?.user;
-  const isAdmin = (user as { role?: string } | undefined)?.role === "admin";
+  const isAdmin = user?.role === "admin";
   console.log(user);
 
   return (
